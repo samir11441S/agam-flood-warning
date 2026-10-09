@@ -11,7 +11,7 @@ Agam:
 1. **Watches rain upstream, across the border, every hour**: 15 rain points in Tripura, Meghalaya, Assam, West Bengal and the Chittagong hills, plus 24 flood-prone upazilas, 9 river points and 4 river mouths (tides).
 2. **Judges it against local history.** Each location's thresholds come from 30 years of rainfall, 40 years of river flow and 2.5 years of tides ("rain this heavy happens once every 2 / 5 years *here*"). Residents' "water rising" reports count as evidence too.
 3. **Turns risk into action — safely.** Claude writes a plain-Bangla SMS, a voice-call script, a loudspeaker announcement and an English summary for officials. Seven automatic checks verify every draft; a signed-in officer (or two, for Danger) approves it — from the dashboard, by SMS reply or by Telegram. At night, unanswered alerts escalate to the next officer.
-4. **Reaches everyone, most vulnerable first.** Voice calls and SMS to every registered phone (retried, then a backup number), volunteer door-knock lists for homes without a phone, loudspeaker scripts for mosques and CPP volunteers, and one-tap "safe / need help" replies on a rescue map.
+4. **Reaches everyone, most vulnerable first.** Voice calls and SMS to every registered phone (retried, then a backup number), volunteer door-knock lists for homes without a phone, loudspeaker scripts for mosques and CPP volunteers, and "safe / need help" replies from **any phone**: reply to the SMS with `1` or `2`, press 1 or 2 during the voice call, or tap a Telegram button. Help requests go straight to the area's volunteers and onto the rescue list.
 
 > Prototype for research and demonstration — not an official warning service. Household data in the demo is synthetic.
 
@@ -116,8 +116,10 @@ Rehearse without a real flood: `npm run worker -- --test-alert parshuram`.
 
 Set `INBOUND_SECRET` in `.env.local`, then give your provider these URLs:
 
-- **Incoming SMS** (officer approvals "1 4821" / "2 4821", residents' "PANI <area>" reports): `https://<your-site>/api/sms/inbound?secret=<INBOUND_SECRET>&from={sender}&text={message}`
-- **Call status** (for retries): `https://<your-site>/api/voice/status?secret=<INBOUND_SECRET>&to={number}&status={answered|no-answer}`
+- **Incoming SMS** (officer approvals "1 4821" / "2 4821", residents' answers "1" = safe / "2" = need help, "PANI <area>" reports): `https://<your-site>/api/sms/inbound?secret=<INBOUND_SECRET>&from={sender}&text={message}`
+- **Call status and keypad** (retries; the call ends with "press 1 if you are safe, 2 if you need help"): `https://<your-site>/api/voice/status?secret=<INBOUND_SECRET>&to={number}&status={answered|no-answer}&digits={key}`
+
+A resident's reply is matched to their household on the uploaded list (or its backup number) and the latest alert sent to their area in the last 72 h. "Need help" is texted at once to every volunteer on the area's contact list, with the household's name, village and number. Check it with `npm run test:replies`.
 
 ### 4. Official warnings, reports and field tests
 

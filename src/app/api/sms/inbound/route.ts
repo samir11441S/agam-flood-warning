@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { bnAt } from "@/lib/bn";
 import { areaById } from "@/lib/data";
 import { handleOfficerSms } from "@/lib/escalation";
+import { parseReply, recordResidentReply } from "@/lib/resident-replies";
 import { normalisePhone, officers } from "@/lib/officers";
 import { areaLists, reports } from "@/lib/store";
 
@@ -10,6 +11,7 @@ import { areaLists, reports } from "@/lib/store";
  *   https://<your-site>/api/sms/inbound?secret=<INBOUND_SECRET>&from={sender}&text={message}
  * Officers reply "1 <code>" to approve or "2 <code>" to reject an alert.
  * Volunteers / residents on the area's lists can text "PANI <area>" (or just "PANI") to report rising water.
+ * Residents answer an alert with "1" (safe) or "2" (need help) — any phone, no app needed.
  */
 async function handle(params: URLSearchParams) {
   if (!process.env.INBOUND_SECRET || params.get("secret") !== process.env.INBOUND_SECRET) {
@@ -35,7 +37,13 @@ async function handle(params: URLSearchParams) {
     reports.add({ phone, areaId: area.id, name: phone.slice(-4), at: new Date().toISOString(), source: "sms", note: text });
     return new Response(`আগাম: ${bnAt(area.nameBn)} পানি বাড়ার রিপোর্ট পাওয়া গেছে। ধন্যবাদ।`, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
-  return new Response("আগাম: পানি বাড়লে লিখুন PANI <এলাকা>", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  // "1" = safe, "2" = need help (reply to an alert).
+  const kind = parseReply(text);
+  if (kind) {
+    const r = await recordResidentReply(phone, kind, "sms", text);
+    return new Response(r.message, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
+  return new Response("আগাম: সতর্কবার্তার উত্তরে লিখুন ১ (নিরাপদ) বা ২ (সাহায্য দরকার)। পানি বাড়লে লিখুন PANI <এলাকা>", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
 
 export async function GET(request: NextRequest) {

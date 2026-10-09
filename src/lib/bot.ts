@@ -115,7 +115,7 @@ export async function handleUpdate(u: Update) {
     if (kind === "safe" || kind === "help") {
       const alert = alerts.get(id);
       if (!alert) return tg("answerCallbackQuery", { callback_query_id: cb.id, text: "এই বার্তাটি আর সক্রিয় নেই।" });
-      replies.record({ chatId, alertId: id, areaId: alert.areaId, name, status: kind, at: new Date().toISOString() });
+      replies.record({ channel: "telegram", chatId, alertId: id, areaId: alert.areaId, name, status: kind, at: new Date().toISOString() });
       await tg("answerCallbackQuery", { callback_query_id: cb.id, text: kind === "safe" ? "ধন্যবাদ!" : "অনুরোধ পাঠানো হয়েছে" });
       await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
       if (kind === "safe") return tg("sendMessage", { chat_id: chatId, text: "✅ ধন্যবাদ। নিরাপদে থাকুন, প্রতিবেশীদের খোঁজ নিন।", reply_markup: residentKeyboard });

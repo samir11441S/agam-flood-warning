@@ -9,6 +9,7 @@ export type RescuePin = { lat: number; lon: number; label: string; live: boolean
 
 const REPLY_LAG = 30;
 const PHONE: Record<string, string> = { smartphone: "Call + SMS", feature: "Call + SMS", none: "Door-knock" };
+const CHANNEL: Record<string, string> = { telegram: "Telegram", sms: "SMS reply", voice: "keypad" };
 
 export default function DispatchPanel({ plan, area, status, onRescues }: {
   plan: DispatchPlan;
@@ -88,14 +89,18 @@ export default function DispatchPanel({ plan, area, status, onRescues }: {
         <div className="rounded-lg bg-red-50 p-2"><div className="text-lg font-bold text-red-700">{counts.help}</div><div className="text-xs text-red-800">🆘 Need help</div></div>
         <div className="rounded-lg bg-amber-50 p-2"><div className="text-lg font-bold text-amber-700">{counts.none}</div><div className="text-xs text-amber-800">No answer → volunteer</div></div>
       </div>
+      <p className="text-[11px] text-stone-500">Any phone can answer: reply to the SMS with <b>1</b> (safe) or <b>2</b> (need help), or press 1 / 2 during the voice call. Telegram users tap a button. Help requests go to the area&apos;s volunteers by SMS at once.</p>
 
       {(live.some((r) => r.status === "help") || helpSim.length > 0) && (
         <div>
           <div className="mb-1 text-xs font-semibold text-red-700">Rescue list — most vulnerable first</div>
           <ul className="max-h-48 space-y-1 overflow-auto text-xs">
             {live.filter((r) => r.status === "help").map((r) => (
-              <li key={r.chatId} className="rounded border border-red-300 bg-red-50 p-1.5">
-                <b>LIVE</b> · {r.name || "Telegram user"} · {new Date(r.at).toLocaleTimeString()} · {r.location ? `📍 ${r.location.lat.toFixed(4)}, ${r.location.lon.toFixed(4)}` : "waiting for location…"}
+              <li key={`${r.channel}-${r.chatId ?? r.phone}`} className="rounded border border-red-300 bg-red-50 p-1.5">
+                <b>LIVE · {CHANNEL[r.channel] ?? r.channel}</b> · <span lang="bn">{r.name || "Telegram user"}{r.village ? ` · ${r.village}` : ""}</span>
+                {r.phone && <> · 📞 {r.phone}</>} · {new Date(r.at).toLocaleTimeString()}
+                {r.channel === "telegram" && <> · {r.location ? `📍 ${r.location.lat.toFixed(4)}, ${r.location.lon.toFixed(4)}` : "waiting for location…"}</>}
+                {r.note && <div lang="bn" className="text-stone-600">“{r.note}”</div>}
               </li>
             ))}
             {[...helpSim].sort((a, b) => b.h.priority - a.h.priority).map(({ h }) => (

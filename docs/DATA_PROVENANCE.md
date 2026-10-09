@@ -20,6 +20,7 @@
 
 - **The demo uses no real personal data.** All demo households are synthetic. Names are generated from common name parts and do not refer to real people, and demo households have no phone numbers.
 - In a real pilot, the household list belongs to the Union Disaster Management Committee and stays on their own server. Only signed-in officers can upload, view or delete it; every upload and deletion is in the audit log; rows without recorded consent are skipped; and the dashboard warns when a list is more than a year old. Agam only needs a name, a phone number, a village and vulnerability flags. Data is never sold and is deleted at the end of the pilot unless the union decides otherwise.
+- Residents' replies ("1" safe / "2" need help) are stored with their phone number so volunteers can reach people who asked for help; only signed-in officers see them, and they are deleted with the rest of the pilot data.
 - Field-test answers (`/field-test`) are anonymous: no name or phone number is collected.
 
 ### Known data limitations

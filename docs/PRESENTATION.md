@@ -37,7 +37,7 @@
    > "One click writes the warning in plain Bangla — SMS and a voice call for people who can't read. The AI **never decides the danger level** and **cannot invent a number**: seven safety checks, or a verified template goes out. And it's sent in the name of their own union committee."
 5. **Click 'Approve & send'** — *your phone buzzes.* Hold it up.
    > "In a real union this goes out as **voice calls and SMS to every phone** — no smartphone needed. If nobody answers, Agam calls again, then a backup number, then sends a volunteer. The mosque gets a loudspeaker script."
-   > "It just arrived on my phone. A person answers with one tap: **'I'm safe'** or **'I need help'** — and help requests appear on the rescue map.
+   > "It just arrived on my phone. A person answers with one tap — or, on any basic phone, by replying **1** or **2** — **'I'm safe'** or **'I need help'**. Help requests go to the volunteers at once and appear on the rescue map.
    > These 240 households are **demo data**, not real people yet — but they show how Agam ranks the most vulnerable first: elderly, disabled, pregnant, homes with no phone. In this simulation, everyone is reached in about **24 minutes**."
 
 ## 2:00 – 2:35 · Proof + honesty
@@ -73,7 +73,7 @@ Say calmly: *"Live internet at events — here's the recorded run,"* and play th
 | **"What if the AI writes something wrong?"** | "The AI never decides the level — transparent rules do. It only words the message from verified facts, seven automatic checks, template fallback, and a signed-in officer approves every alert — two officers for Danger if the committee wants." |
 | **"Is it real-time?"** | "Yes — hourly rain, checked every 15 minutes by a background worker that drafts the alert by itself. Next we add satellite rain, NASA IMERG, to catch very local cloudbursts." |
 | **"What if the officer is asleep?"** | "Agam texts officer 1 — 'reply 1 and the code to send'. After 15 minutes it asks officer 2, then 3. For Danger, if nobody answers in 45 minutes, the verified template goes out automatically." |
-| **"Not everyone has a smartphone."** | "That's why the main channel is a plain voice call and SMS — any phone works. Homes without a phone get a volunteer, and mosques get a loudspeaker script." |
+| **"Not everyone has a smartphone."** | "That's why the main channel is a plain voice call and SMS — any phone works. To answer, they reply 1 for safe or 2 for help, or press 1 or 2 during the call. A help request goes straight to the volunteers by SMS. Homes without a phone get a volunteer, and mosques get a loudspeaker script." |
 | **"Where do travel times come from?"** | "Geography and reported events — for example 5 to 8 hours Tripura to Feni, from FFWC staff. Validating them with BWDB gauge records is task one of the pilot." |
 | **"How do you make money?"** | "Citizens never pay. Anticipatory-action NGOs need auditable triggers; union and upazila committees subscribe; lenders and insurers buy early signals; telcos partner on call capacity." |
 | **"What about people without phones?"** | "They go to volunteer door-knock routes automatically — and they're ranked first, because no phone is a vulnerability." |

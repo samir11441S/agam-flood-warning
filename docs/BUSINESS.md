@@ -15,13 +15,15 @@ Everything below is an **assumption to replace with real quotes** from providers
 
 | Item | Formula | Example assumption | Example cost |
 |---|---|---|---|
-| SMS | households with phone × alert rounds × SMS parts × price per part | 5,000 × 5 rounds × 3 parts (Bangla SMS) × Tk 0.30 | Tk 22,500 |
+| SMS | households with phone × alert rounds × SMS parts × price per part | 5,000 × 5 rounds × 4 parts (Bangla SMS + "reply 1 / 2" line) × Tk 0.30 | Tk 30,000 |
 | Voice calls | households with phone × rounds × attempts × price per call | 5,000 × 5 × 1.3 × Tk 0.60 | Tk 19,500 |
 | Volunteer / announcer SMS | contacts × rounds × parts × price | 40 × 5 × 3 × Tk 0.30 | Tk 180 |
 | Hosting (shared by many unions) | small server per month ÷ unions served | US$10 ÷ 20 unions × 6 months | ≈ Tk 400 |
 | Weather data (commercial) | Open-Meteo API plan ÷ unions served | see open-meteo.com/en/pricing | small when shared |
 | AI alert writing | Claude API per alert | < US$0.05 per alert × 5 | ≈ Tk 30 |
-| **Total** | | | **≈ Tk 43,000 per union per monsoon** (≈ Tk 8–9 per household) |
+| **Total** | | | **≈ Tk 50,000 per union per monsoon** (≈ Tk 10 per household) |
+
+Replies: pressing 1 or 2 during the call costs the resident nothing extra; an SMS reply costs them one normal SMS. Help requests forwarded to volunteers are a few SMS per round.
 
 Alert rounds per year come from the 30-year backtest (≈ 0.6 Danger episodes plus several Warning days per area per year). **Compare:** one avoided livestock loss or one evacuated family is worth more than the whole union's yearly cost.
 

@@ -12,6 +12,7 @@ import { alerts, areaLists, subscribers, type Approval, type SavedAlert } from "
 import { alertMessage, replyButtons, telegramToken, tg } from "./telegram";
 import type { Assessment } from "./types";
 import { deliveries } from "./deliveries";
+import { householdSms, householdVoice } from "./resident-replies";
 
 export function planFor(areaId: string): DispatchPlan {
   const uploaded = areaLists.households(areaId);
@@ -89,12 +90,12 @@ export async function send(alert: SavedAlert): Promise<OutboxEntry[]> {
   // 1–2. Voice call + SMS to every household with a phone (real numbers only come from an uploaded list).
   if (plan.source === "uploaded") {
     const homes = plan.all.filter((h) => h.phoneNumber);
-    await deliver("Voice call (Bangla)", modeOf(voiceMode()), homes.map((h) => h.phoneNumber!), () => alert.content.voice_bn, sendVoice);
-    await deliver("SMS (Bangla)", modeOf(smsMode()), homes.map((h) => h.phoneNumber!), () => alert.content.sms_bn, sendSms);
+    await deliver("Voice call (Bangla)", modeOf(voiceMode()), homes.map((h) => h.phoneNumber!), () => householdVoice(alert.content), sendVoice);
+    await deliver("SMS (Bangla)", modeOf(smsMode()), homes.map((h) => h.phoneNumber!), () => householdSms(alert.content), sendSms);
     deliveries.start(alert.id, area.id, homes, modeOf(voiceMode()) === "live");
   } else {
-    outbox.push({ channel: "Voice call (Bangla)", mode: "simulated", recipients: plan.voiceCalls, sent: 0, failed: 0, sample: alert.content.voice_bn, note: "Demo households have no phone numbers. Upload the union's household list to send for real." });
-    outbox.push({ channel: "SMS (Bangla)", mode: "simulated", recipients: plan.smsBackup, sent: 0, failed: 0, sample: alert.content.sms_bn, note: "Demo households have no phone numbers." });
+    outbox.push({ channel: "Voice call (Bangla)", mode: "simulated", recipients: plan.voiceCalls, sent: 0, failed: 0, sample: householdVoice(alert.content), note: "Demo households have no phone numbers. Upload the union's household list to send for real." });
+    outbox.push({ channel: "SMS (Bangla)", mode: "simulated", recipients: plan.smsBackup, sent: 0, failed: 0, sample: householdSms(alert.content), note: "Demo households have no phone numbers." });
   }
 
   // 3. Volunteers: each gets the list of phone-less homes to visit.

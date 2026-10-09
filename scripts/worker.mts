@@ -20,6 +20,7 @@ import { audit, officers, settings } from "../src/lib/officers";
 import { assessArea } from "../src/lib/risk";
 import { alerts, areaLists } from "../src/lib/store";
 import { botUsername, telegramToken, tg } from "../src/lib/telegram";
+import { householdVoice } from "../src/lib/resident-replies";
 
 const TICK_SEC = Number(process.env.WORKER_TICK_SEC ?? 60);
 const DETECT_EVERY_MIN = Number(process.env.WORKER_DETECT_MIN ?? 15);
@@ -41,7 +42,7 @@ async function detect() {
 }
 
 async function retryCalls() {
-  const handed = await deliveries.tick((to, d) => sendVoice(to, alerts.get(d.alertId)?.content.voice_bn ?? ""));
+  const handed = await deliveries.tick((to, d) => sendVoice(to, householdVoice(alerts.get(d.alertId)?.content ?? { voice_bn: "" })));
   if (!handed.length) return;
   // Homes nobody answered for: send them to the area's volunteers.
   const byAlert = Map.groupBy(handed, (d) => d.alertId);

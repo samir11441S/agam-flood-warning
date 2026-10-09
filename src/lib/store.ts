@@ -31,7 +31,20 @@ export type SavedAlert = {
   /** Replay alerts are demo-only and never reach real channels. */
   scenario: "live" | "replay";
 };
-export type Reply = { chatId: number; alertId: string; areaId: string; name: string; status: "safe" | "help"; at: string; location?: { lat: number; lon: number } };
+/** A resident's answer to an alert: Telegram button, SMS "1"/"2", or keypad 1/2 during the voice call. */
+export type Reply = {
+  channel: "telegram" | "sms" | "voice";
+  chatId?: number;
+  phone?: string;
+  alertId: string;
+  areaId: string;
+  name: string;
+  village?: string;
+  status: "safe" | "help";
+  at: string;
+  note?: string;
+  location?: { lat: number; lon: number };
+};
 
 function read<T>(name: string, fallback: T): T {
   try {
@@ -73,7 +86,8 @@ export const alerts = {
 export const replies = {
   forAlert: (alertId: string) => read<Reply[]>("replies", []).filter((r) => r.alertId === alertId),
   record(r: Reply) {
-    const list = read<Reply[]>("replies", []).filter((x) => !(x.chatId === r.chatId && x.alertId === r.alertId));
+    const same = (x: Reply) => x.alertId === r.alertId && (r.chatId !== undefined ? x.chatId === r.chatId : x.phone === r.phone);
+    const list = read<Reply[]>("replies", []).filter((x) => !same(x));
     write("replies", [...list, r]);
   },
   /** Attach a shared location to this chat's most recent "help" reply. */

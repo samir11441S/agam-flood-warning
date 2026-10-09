@@ -51,6 +51,7 @@ function simulatedAnswer(d: Delivery) {
 }
 
 export const deliveries = {
+  all: () => readAll(),
   forAlert: (alertId: string) => readAll().filter((d) => d.alertId === alertId),
 
   start(alertId: string, areaId: string, homes: Household[], live: boolean) {
