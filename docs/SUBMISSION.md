@@ -90,7 +90,7 @@ Agam turns an area red and drafts the alert → the union officer gets an SMS ("
 ## 4. Demo & links
 
 - **Prototype / live demo:** https://agam-flood-warning.vercel.app (demo mode: officer PIN `0000`; nothing is sent to real phones)
-- **GitHub repository:** **[TEAM]** your repo URL (make it public, or add a Judge Access Note)
+- **GitHub repository:** https://github.com/samir11441S/agam-flood-warning (public)
 - **YouTube demo (3–5 min, Public or Unlisted):** **[TEAM]** follow the flow in `docs/PITCH.md`
 - **Slide deck (optional):** **[TEAM]**
 

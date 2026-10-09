@@ -2,7 +2,7 @@
 
 **Idea to Unicorn · ClimateSphere AI → Climate Shield (climate risk prediction & disaster early warning)** · Team **Quantum Builders**
 
-**Live demo:** https://agam-flood-warning.vercel.app — open a flood replay and press ▶ Play. To draft and approve an alert, click **Officer sign in** (demo PIN `0000`; demo mode never sends to real phones).
+**Live demo:** https://agam-flood-warning.vercel.app — open a flood replay and press ▶ Play. To draft and approve an alert, click **Officer sign in** (demo PIN `0000`; demo mode never sends to real phones). **Code:** https://github.com/samir11441S/agam-flood-warning
 
 In August 2024, record rain in the hills of Tripura (India) sent flash floods into Feni, Cumilla and Noakhali. Every major weather model forecast missed that rain one to two days ahead. But the rain *was* visible in observations — hours to a day before the water crossed the border.
 
