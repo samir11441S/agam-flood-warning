@@ -91,7 +91,7 @@ Agam turns an area red and drafts the alert → the union officer gets an SMS ("
 
 - **Prototype / live demo:** https://agam-flood-warning.vercel.app (demo mode: officer PIN `0000`; nothing is sent to real phones)
 - **GitHub repository:** https://github.com/samir11441S/agam-flood-warning (public)
-- **YouTube demo (3–5 min, Public or Unlisted):** **[TEAM]** follow the flow in `docs/PITCH.md`
+- **YouTube video (max 3 min 1 s = 181 s, Public or Unlisted):** **[TEAM]** upload `video/out/agam-demo-3min-bn.mp4` (Bangla voice, add the English subtitles `agam-demo-3min-bn.en.srt`) or `agam-demo-3min.mp4` (English). Made with `npm run video:3min:bn` / `npm run video:3min`.
 - **Slide deck (optional):** **[TEAM]**
 
 ---

@@ -143,7 +143,12 @@ Open-Meteo's free API is for **non-commercial** use. If Agam is paid for, buy an
 
 ## The demo video
 
-The competition video is rendered automatically from the real app: `video/out/agam-demo.mp4` (1920×1080, ~4:50), plus `video/out/agam-demo.srt` captions to upload to YouTube.
+The competition video is rendered automatically from the real app. **The submission form allows at most 181 seconds**, so use the 3-minute pitch, which follows the judges' breakdown (0:00 problem → 0:30 solution → 1:00 demo → 2:00 AI approach → 2:30 impact):
+
+- `npm run video:3min` → `video/out/agam-demo-3min.mp4` (English voice, ~2:49)
+- `npm run video:3min:bn` → `video/out/agam-demo-3min-bn.mp4` (Bangla voice) plus `agam-demo-3min-bn.en.srt` English subtitles
+
+The longer walkthrough (`npm run video`, ~4:50) is still available for presentations. Each render prints its length and warns if the 3-minute cut is too long.
 
 To re-render it after a change (keep `npm run dev` running in another terminal):
 

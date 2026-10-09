@@ -19,7 +19,7 @@ import { areaById, rainThresholds, replayInputs, replaySteps, riverThresholds, s
 import { dispatchPlan, syntheticHouseholds } from "../src/lib/households";
 import { assessArea } from "../src/lib/risk";
 import type { Level } from "../src/lib/types";
-import { banglaScript } from "./script-bn.mjs";
+import { banglaPitchScript, banglaScript } from "./script-bn.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BUILD = path.join(HERE, "build");
@@ -32,8 +32,11 @@ const W = 1440, H = 810, DSF = 4 / 3; // 1920x1080 output
 const LEAD = 0.5, GAP = 0.25, TAIL = 0.7, RATE = 44100;
 const ARGS = process.argv.slice(2);
 const BN = ARGS.includes("--bn");
-const VOICE_DIR = path.join(HERE, BN ? "voice-bn" : "voice");
-const SUFFIX = BN ? "-bn" : "";
+/** --3min: the 180-second competition pitch (problem → solution → demo → AI approach → impact). */
+const CUT = ARGS.includes("--3min");
+const MAX_SECONDS = 180;
+const VOICE_DIR = path.join(HERE, BN ? (CUT ? "voice-bn-3min" : "voice-bn") : "voice");
+const SUFFIX = (CUT ? "-3min" : "") + (BN ? "-bn" : "");
 // Recorded narration is sped up slightly (pitch kept) so the Bangla video stays under 5 minutes.
 const VOICE_TEMPO = Number(process.env.VOICE_TEMPO ?? (BN ? "1.12" : "1"));
 
@@ -122,7 +125,7 @@ type Scene = {
   on?: (ctx: Ctx) => Promise<void>;
 };
 
-const scenes: Scene[] = [
+const fullScenes: Scene[] = [
   { id: "01-title", kind: "slide", sentences: [
     "This is Agam. In Bangla, it means: in advance.",
     "Flash-flood warnings that watch the rain across the border, and reach every household in time.",
@@ -234,9 +237,69 @@ const scenes: Scene[] = [
   ] },
 ];
 
+// The 180-second pitch follows the judges' breakdown: 0:00 problem, 0:30 solution, 1:00 demo, 2:00 AI approach, 2:30 impact.
+const pitchScenes: Scene[] = [
+  { id: "p1-hook", kind: "slide", sentences: [
+    "On 19 August 2024, cloudbursts over Tripura sent flash floods into Feni within hours.",
+    "5.8 million people were affected, 71 died, and there was no forecast of a flood this severe.",
+    "Union disaster committees must warn every village, but the elderly, the disabled and families without phones hear last.",
+    "And the same cross-border flash floods threaten Nepal, Northeast India, Myanmar and East Africa.",
+  ] },
+  { id: "p2-solution", kind: "slide", sentences: [
+    "Agam, Bangla for in advance, watches the rain where it falls: across the border, hours before the water arrives.",
+    "Every hour it compares rain at 15 upstream points, 24 upazilas, rivers and tides with each place's own history.",
+    "When risk rises, AI writes a plain-Bangla voice call and SMS, a local officer approves, and every household is reached, the most vulnerable first.",
+    "River forecasts cover big rivers, days ahead. Agam covers small flashy rivers, hours ahead, down to every household.",
+  ] },
+  { id: "p3-replay", kind: "app", sentences: [
+    "Here is the working prototype, replaying August 2024 with only the data known at each hour.",
+    `${cap(when(feniSteps[watchIdx]))}, heavy rain in Tripura: Watch.`,
+    `${cap(when(feniSteps[warnIdx]))}: Warning.`,
+    `${cap(when(feniSteps[firstDangerIdx]))}: Danger for ${andList(names(firstDangerIds))}${coastTide ? ", as heavy rain meets a spring tide" : ""}.`,
+    `${cap(when(DEMO_STEP))}: ${topSignal.value} millimetres at ${place(topSignal.where)} in one day, a once-in-five-years rain there.`,
+    `Every level explains itself: water may reach Parshuram in ${Math.max(1, demoAssessment.etaHours![0])} to ${demoAssessment.etaHours![1]} hours.`,
+  ],
+    setup: async (page) => { await openApp(page); },
+    on: async ({ page, i }) => {
+      if (i === 1) await setSlider(page, watchIdx);
+      if (i === 2) await setSlider(page, warnIdx);
+      if (i === 3) await setSlider(page, firstDangerIdx);
+      if (i === 4) await setSlider(page, dangerIdx);
+      if (i === 5) { await click(page, page.getByText("Parshuram, Feni")); await hover(page, page.getByText("Water may arrive in")); }
+    } },
+  { id: "p4-alert", kind: "app", sentences: [
+    "One click, and Claude drafts the alert in plain Bangla: SMS, voice call and mosque announcement.",
+    "Seven safety checks pass, and the officer approves.",
+    "Calls and SMS go to every phone, most vulnerable first; homes without a phone get a volunteer.",
+    "People reply 1 for safe or 2 for help, and help requests go straight to volunteers.",
+  ],
+    on: async ({ page, i }) => {
+      if (i === 0) { await click(page, page.getByRole("button", { name: /Draft Bangla alert/ })); await page.getByText("Draft alert — needs human approval").waitFor(); await sleep(0.3); await scrollAside(page, page.getByText("Draft alert — needs human approval")); }
+      if (i === 1) await scrollAside(page, page.getByText("Safety checks"));
+      if (i === 2) { await click(page, page.getByRole("button", { name: /Approve & send/ })); await page.getByText("Dispatch & replies").waitFor(); await sleep(0.3); await scrollAside(page, page.getByText("Outbox — what was sent")); }
+      if (i === 3) { await scrollAside(page, page.getByText("Any phone can answer")); await hover(page, page.locator(".leaflet-overlay-pane path.leaflet-interactive").last()); }
+    } },
+  { id: "p5-ai", kind: "slide", sentences: [
+    "The AI approach. Input: hourly rain, river and tide data, plus residents' text reports.",
+    "Transparent rules, calibrated on 30 years of local data, decide the danger level, so the AI never guesses it.",
+    "Claude then writes the message from verified facts only, personalised by area, language and sender; seven guardrails check it, and an officer approves.",
+    "Output: calls and SMS, most vulnerable first, and an MCP server so other AI agents can use Agam.",
+  ] },
+  { id: "p6-impact", kind: "slide", sentences: [
+    summary
+      ? `In a 30-year backtest, Agam raised Danger in time for ${summary.onTime} of ${summary.events} documented floods, with less than one alarm per area per year.`
+      : "Every number is reproducible from open data, with one command.",
+    "In a pilot, we will measure every household reached within 30 minutes, and at least 80 percent understanding the alert.",
+    "Disaster committees, NGOs and insurers pay, never citizens. Next: a pilot union in Feni, then the region.",
+    `We are ${isPlaceholder(team.teamName) ? "the Agam team" : team.teamName}. Agam makes sure the grandmother on the char hears it, in her language, in time.`,
+  ] },
+];
+
+const scenes = CUT ? pitchScenes : fullScenes;
+
 if (BN) {
   const namesBn = (ids: string[]) => ids.map((id) => areaById[id].nameBn);
-  const bn = banglaScript({
+  const bn = (CUT ? banglaPitchScript : banglaScript)({
     watchStep: feniSteps[watchIdx], warnStep: feniSteps[warnIdx],
     firstDanger: { step: feniSteps[firstDangerIdx], areasBn: namesBn(firstDangerIds), rain: coastRain, tide: Boolean(coastTide) },
     dangerStep: DEMO_STEP,
@@ -539,6 +602,7 @@ if (ARGS.includes("--dry")) {
     console.log(`${sc.id.padEnd(14)} ${total.toFixed(1)}s`);
   }
   console.log(`total ${Math.floor(sum / 60)}:${String(Math.round(sum % 60)).padStart(2, "0")}`);
+  if (CUT && sum > MAX_SECONDS) console.log(`TOO LONG for the ${MAX_SECONDS}-second limit by ${(sum - MAX_SECONDS).toFixed(1)} s`);
   process.exit(0);
 }
 

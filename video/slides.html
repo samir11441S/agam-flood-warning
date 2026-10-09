@@ -120,6 +120,52 @@
   .big-quote em { font-style: normal; color: var(--water); }
   .ask { margin-top: 44px; font-size: 26px; color: #fde68a; font-weight: 600; }
   .links { margin-top: 30px; font-size: 22px; color: #cbd5e1; }
+
+  /* ---------- 3-minute pitch ---------- */
+  .who { grid-template-columns: 1fr 1fr; margin-top: 26px; }
+  .who .card { padding: 20px 24px; }
+  .who b { display: block; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; color: var(--water); margin-bottom: 8px; }
+  .who span { font-size: 22px; line-height: 1.4; }
+  .hook-stats { grid-template-columns: repeat(4, 1fr); margin-top: 30px; }
+  .hook-stats .card { padding: 20px 24px; }
+  .hook-stats .num { font-size: 44px; font-weight: 800; letter-spacing: -.02em; }
+  .hook-stats .lbl { font-size: 17px; color: #cbd5e1; margin-top: 4px; line-height: 1.35; }
+  .globe { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 24px; font-size: 19px; color: #cbd5e1; }
+  .globe div { background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.3); padding: 7px 14px; border-radius: 999px; font-size: 17px; color: #e2e8f0; }
+  .sol { grid-template-columns: repeat(3, 1fr); margin-top: 28px; }
+  .sol .card { padding: 22px 24px; }
+  .sol .n { font-size: 14px; color: var(--water); font-weight: 700; letter-spacing: .12em; }
+  .sol h3 { font-size: 24px; margin-top: 10px; line-height: 1.2; }
+  .sol p { font-size: 17px; color: #cbd5e1; margin-top: 8px; line-height: 1.45; }
+  .vs { grid-template-columns: 1fr 1fr; margin-top: 22px; }
+  .vs .card { padding: 16px 22px; font-size: 19px; line-height: 1.4; }
+  .vs .them { color: #94a3b8; }
+  .vs .us { border-color: rgba(56,189,248,.55); background: rgba(56,189,248,.1); }
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 34px; margin-top: 34px; position: relative; }
+  .flow .card { padding: 18px 18px; position: relative; min-height: 300px; }
+  .flow .card:not(:last-child)::after { content: "→"; position: absolute; right: -30px; top: 42%; font-size: 30px; color: var(--water); }
+  .flow .tag2 { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--water); }
+  .flow h3 { font-size: 21px; margin-top: 8px; line-height: 1.2; }
+  .flow p { font-size: 15.5px; color: #cbd5e1; margin-top: 8px; line-height: 1.45; }
+  .flow .ai { border-color: rgba(167,139,250,.7); background: rgba(139,92,246,.14); }
+  .flow .ai .tag2 { color: #c4b5fd; }
+  .flow .rules .tag2 { color: #fde68a; }
+  .stack { margin-top: 22px; font-size: 17px; color: #94a3b8; }
+  .stack b { color: #e2e8f0; font-weight: 600; }
+  .imp { grid-template-columns: repeat(5, 1fr); margin-top: 26px; gap: 16px; }
+  .imp .card { padding: 16px 18px; }
+  .imp .num { font-size: 32px; font-weight: 800; letter-spacing: -.01em; }
+  .imp .lbl { font-size: 15.5px; color: #cbd5e1; margin-top: 4px; line-height: 1.35; }
+  .imp .target { border-color: rgba(250,204,21,.45); }
+  .imp .target .num { color: #fde68a; }
+  .next { grid-template-columns: 1fr 1fr; margin-top: 18px; }
+  .next .card { padding: 16px 22px; font-size: 18px; line-height: 1.45; }
+  .next b { display: block; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--water); margin-bottom: 6px; }
+  .sign { display: flex; align-items: center; gap: 18px; margin-top: 20px; }
+  .sign img.lg { width: 64px; height: 64px; border-radius: 14px; }
+  .sign img.ph { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid rgba(56,189,248,.6); }
+  .sign .t { font-size: 22px; font-weight: 700; }
+  .sign .l { font-size: 16px; color: #94a3b8; }
 </style>
 </head>
 <body>
@@ -241,6 +287,68 @@
   <div class="cta-team" data-beat="1" id="ctaTeam"></div>
 </section>
 
+
+<!-- ---------- 3-minute pitch ---------- -->
+<section id="hook">
+  <div class="kicker" data-beat="0">The problem</div>
+  <h2 data-beat="0">19 August 2024: cloudbursts over Tripura flooded Feni within hours.</h2>
+  <div class="grid hook-stats" data-beat="1">
+    <div class="card"><div class="num" style="color:var(--warning)">5–8 h</div><div class="lbl">for water from Tripura's hills to reach Feni</div></div>
+    <div class="card"><div class="num">5.8 M</div><div class="lbl">people affected</div></div>
+    <div class="card"><div class="num" style="color:var(--danger)">71</div><div class="lbl">lives lost</div></div>
+    <div class="card"><div class="num" style="font-size:30px;line-height:1.5">No forecast</div><div class="lbl">of a flood this severe (FFWC)</div></div>
+  </div>
+  <div class="grid who" data-beat="2">
+    <div class="card"><b>Who must warn</b><span>Union &amp; Upazila Disaster Management Committees and their volunteers</span></div>
+    <div class="card"><b>Who hears last</b><span>The elderly, the disabled, families without phones, people on chars</span></div>
+  </div>
+  <div class="globe" data-beat="3">Same cross-border flash floods: <div>Bangladesh</div><div>Nepal → Bihar</div><div>Northeast India</div><div>Myanmar</div><div>East Africa</div></div>
+</section>
+
+<section id="solution">
+  <div class="kicker" data-beat="0">The solution</div>
+  <h2 data-beat="0"><span class="bn" style="color:var(--water)">আগাম</span> Agam — "in advance": watch the rain where it falls.</h2>
+  <div class="grid sol">
+    <div class="card" data-beat="1"><div class="n">01 · WATCH</div><h3>Rain across the border, every hour</h3><p>15 upstream points · 24 upazilas · 9 rivers · tides · residents' reports — judged against each place's own history</p></div>
+    <div class="card" data-beat="2"><div class="n">02 · WRITE</div><h3>AI writes plain Bangla</h3><p>Voice call, SMS and mosque announcement · 7 safety checks · a local officer approves</p></div>
+    <div class="card" data-beat="2"><div class="n">03 · REACH</div><h3>Every household, most vulnerable first</h3><p>Calls + SMS to any phone · volunteers for homes without one · reply 1 = safe, 2 = help</p></div>
+  </div>
+  <div class="grid vs" data-beat="3">
+    <div class="card them">River forecasts (FFWC, Google Flood Hub): big rivers · days ahead · technical bulletins</div>
+    <div class="card us"><b>Agam:</b> small flashy border rivers · hours ahead · every household, in Bangla</div>
+  </div>
+</section>
+
+<section id="ai">
+  <div class="kicker" data-beat="0">AI approach</div>
+  <h2 data-beat="0">Input → rules → AI → human → every household</h2>
+  <div class="flow">
+    <div class="card" data-beat="0"><div class="tag2">1 · Input</div><h3>Live data, every hour</h3><p>Rain at 15 upstream points · river flow (GloFAS) · tide · residents' "PANI" SMS reports</p></div>
+    <div class="card rules" data-beat="1"><div class="tag2">2 · Risk engine (no AI)</div><h3>Rules decide the level</h3><p>Thresholds from 30 years of local data (ERA5) → Normal / Watch / Warning / Danger + arrival time, with the reason</p></div>
+    <div class="card ai" data-beat="2"><div class="tag2">3 · Claude (LLM)</div><h3>Writes the words</h3><p>Grounded only in verified facts (no RAG needed) · personalised: area, Bangla / dialect, local committee as sender</p></div>
+    <div class="card" data-beat="2"><div class="tag2">4 · Guardrails + human</div><h3>Checked, then approved</h3><p>7 automatic checks → verified template if any fails · officer approves (2 for Danger) · escalates at night</p></div>
+    <div class="card" data-beat="3"><div class="tag2">5 · Output</div><h3>Reach + feedback</h3><p>Voice + SMS, most vulnerable first · volunteers · replies 1 / 2 · MCP server for other AI agents</p></div>
+  </div>
+  <div class="stack" data-beat="3"><b>Built with:</b> Claude API (claude-opus-5-5) · Next.js · Leaflet / OpenStreetMap · Copernicus ERA5 &amp; GloFAS via Open-Meteo · Model Context Protocol</div>
+</section>
+
+<section id="impact">
+  <div class="kicker" data-beat="0">Impact &amp; next step</div>
+  <h2 data-beat="0">Clear, measurable, buildable.</h2>
+  <div class="grid imp">
+    <div class="card" data-beat="0"><div class="num" id="kpiOnTime">20 / 35</div><div class="lbl">documented floods warned on time (30-year backtest)</div></div>
+    <div class="card" data-beat="0"><div class="num">&lt; 1</div><div class="lbl">Danger alarm per area per year — no alarm fatigue</div></div>
+    <div class="card target" data-beat="1"><div class="num">100%</div><div class="lbl">pilot target: households reached within 30 min</div></div>
+    <div class="card target" data-beat="1"><div class="num">≥ 80%</div><div class="lbl">pilot target: residents understand the alert</div></div>
+    <div class="card target" data-beat="1"><div class="num">≈ Tk 10</div><div class="lbl">per household per monsoon</div></div>
+  </div>
+  <div class="grid next" data-beat="2">
+    <div class="card"><b>Who uses &amp; pays</b>Union disaster committees · NGOs running anticipatory action · insurers &amp; microfinance. Citizens never pay.</div>
+    <div class="card"><b>Next</b>Pilot one union in Feni next monsoon → field-test the Bangla alerts → validate with BWDB gauges → scale to the region.</div>
+  </div>
+  <div class="sign" data-beat="3" id="sign"></div>
+</section>
+
 <div id="caption"></div>
 
 <script>
@@ -257,6 +365,17 @@
     setTimeout(() => tg.insertAdjacentHTML("beforeend", `<div class="msg">🆘 আপনার অনুরোধ স্বেচ্ছাসেবকদের কাছে পাঠানো হয়েছে। অবস্থান পাঠান।</div>`), 1300);
     setTimeout(() => tg.insertAdjacentHTML("beforeend", `<div class="msg me">📍 অবস্থান পাঠানো হয়েছে</div>`), 2300);
   };
+
+
+  // 3-minute pitch: team sign-off and live numbers
+  if (D.summary) document.getElementById("kpiOnTime").textContent = `${D.summary.onTime} / ${D.summary.events}`;
+  {
+    const T2 = D.team || {};
+    const real2 = (s) => s && !s.startsWith("[");
+    const people = (T2.members || []).filter((m) => real2(m.name) && m.photo).map((m) => `<img class="ph" src="${m.photo}" alt="" />`).join("");
+    const links = [T2.demoUrl, T2.repoUrl].filter(Boolean).join(" · ");
+    document.getElementById("sign").innerHTML = `${T2.logo ? `<img class="lg" src="${T2.logo}" alt="" />` : ""}${people}<div><div class="t">${real2(T2.teamName) ? `Team ${T2.teamName}` : ""}</div><div class="l">${links}</div></div>`;
+  }
 
   // forecast chart
   const bars = [["ECMWF", 29], ["GFS", 35], ["ICON", 24], ["JMA", 30], ["Actual", 197]];
