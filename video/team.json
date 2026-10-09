@@ -1,0 +1,14 @@
+{
+  "teamName": "Quantum Builders",
+  "teamNameBn": "কোয়ান্টাম বিল্ডার্স",
+  "logo": "team/logo.jpg",
+  "members": [
+    { "name": "MD Samir Hossan", "nameBn": "এমডি সামির হোসান", "role": "Team Leader", "roleBn": "দলনেতা", "photo": "team/samir.jpg" },
+    { "name": "Nadia Islam Priya", "nameBn": "নাদিয়া ইসলাম প্রিয়া", "role": "Team Coordinator", "roleBn": "দল সমন্বয়ক", "photo": "team/nadia.jpg" },
+    { "name": "[Name]", "role": "[Role]" },
+    { "name": "[Name]", "role": "[Role]" },
+    { "name": "[Name]", "role": "[Role]" }
+  ],
+  "demoUrl": "agam-flood-warning.vercel.app",
+  "repoUrl": ""
+}

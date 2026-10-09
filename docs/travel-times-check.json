@@ -1,0 +1,86 @@
+{
+  "method": "Lag (days, 0–6) maximising the correlation between upstream daily rain and the daily rise in GloFAS river flow, June–September 1994–2023.",
+  "areas": {
+    "sunamganj": {
+      "station": "cherrapunji",
+      "learnedDays": 0,
+      "correlation": 0.69,
+      "estimatedHours": [
+        8,
+        20
+      ]
+    },
+    "chhatak": {
+      "station": "mawsynram",
+      "learnedDays": 0,
+      "correlation": 0.64,
+      "estimatedHours": [
+        8,
+        16
+      ]
+    },
+    "durgapur": {
+      "station": "tura",
+      "learnedDays": 0,
+      "correlation": 0.6,
+      "estimatedHours": [
+        6,
+        12
+      ]
+    },
+    "kurigram": {
+      "station": "dhubri",
+      "learnedDays": 0,
+      "correlation": 0.31,
+      "estimatedHours": [
+        24,
+        48
+      ]
+    },
+    "chilmari": {
+      "station": "dhubri",
+      "learnedDays": 0,
+      "correlation": 0.32,
+      "estimatedHours": [
+        24,
+        48
+      ]
+    },
+    "fulchhari": {
+      "station": "dhubri",
+      "learnedDays": 0,
+      "correlation": 0.33,
+      "estimatedHours": [
+        48,
+        72
+      ]
+    },
+    "islampur": {
+      "station": "dhubri",
+      "learnedDays": 0,
+      "correlation": 0.33,
+      "estimatedHours": [
+        48,
+        72
+      ]
+    },
+    "sirajganj": {
+      "station": "dhubri",
+      "learnedDays": 0,
+      "correlation": 0.33,
+      "estimatedHours": [
+        72,
+        120
+      ]
+    },
+    "hatibandha": {
+      "station": "jalpaiguri",
+      "learnedDays": 0,
+      "correlation": 0.44,
+      "estimatedHours": [
+        12,
+        24
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+# One command on any server with Docker:  docker compose up -d --build
+services:
+  agam:
+    build: .
+    ports: ["3000:3000"]
+    env_file: .env.local
+    volumes:
+      - agam-data:/app/.agam-data
+    restart: unless-stopped
+volumes:
+  agam-data:

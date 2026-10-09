@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+scripts/.cache/
+!.env.example
+.agam-data/
+video/build/
+video/out/
+video/voice/
+*.log
+# Team photos are used only in the rendered video, not published in the repo
+video/team/
+
+.vercel
+.env*
+!.env.example

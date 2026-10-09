@@ -1,0 +1,760 @@
+{
+ "stations": [
+  {
+   "id": "belonia",
+   "name": "Belonia (S. Tripura)",
+   "nameBn": "বিলোনিয়া (দক্ষিণ ত্রিপুরা)",
+   "lat": 23.25,
+   "lon": 91.45,
+   "country": "IN"
+  },
+  {
+   "id": "santirbazar",
+   "name": "Santirbazar (S. Tripura)",
+   "nameBn": "শান্তিরবাজার (দক্ষিণ ত্রিপুরা)",
+   "lat": 23.35,
+   "lon": 91.55,
+   "country": "IN"
+  },
+  {
+   "id": "sabroom",
+   "name": "Sabroom (S. Tripura)",
+   "nameBn": "সাব্রুম (দক্ষিণ ত্রিপুরা)",
+   "lat": 23.0,
+   "lon": 91.72,
+   "country": "IN"
+  },
+  {
+   "id": "udaipur",
+   "name": "Udaipur (Gomati, Tripura)",
+   "nameBn": "উদয়পুর (ত্রিপুরা)",
+   "lat": 23.53,
+   "lon": 91.48,
+   "country": "IN"
+  },
+  {
+   "id": "agartala",
+   "name": "Agartala (Tripura)",
+   "nameBn": "আগরতলা (ত্রিপুরা)",
+   "lat": 23.83,
+   "lon": 91.28,
+   "country": "IN"
+  },
+  {
+   "id": "khowai",
+   "name": "Khowai (Tripura)",
+   "nameBn": "খোয়াই (ত্রিপুরা)",
+   "lat": 24.07,
+   "lon": 91.6,
+   "country": "IN"
+  },
+  {
+   "id": "cherrapunji",
+   "name": "Cherrapunji (Meghalaya)",
+   "nameBn": "চেরাপুঞ্জি (মেঘালয়)",
+   "lat": 25.27,
+   "lon": 91.73,
+   "country": "IN"
+  },
+  {
+   "id": "mawsynram",
+   "name": "Mawsynram (Meghalaya)",
+   "nameBn": "মৌসিনরাম (মেঘালয়)",
+   "lat": 25.3,
+   "lon": 91.58,
+   "country": "IN"
+  },
+  {
+   "id": "jowai",
+   "name": "Jowai (Meghalaya)",
+   "nameBn": "জোয়াই (মেঘালয়)",
+   "lat": 25.45,
+   "lon": 92.2,
+   "country": "IN"
+  },
+  {
+   "id": "tura",
+   "name": "Tura (Garo Hills)",
+   "nameBn": "তুরা (গারো পাহাড়)",
+   "lat": 25.51,
+   "lon": 90.22,
+   "country": "IN"
+  },
+  {
+   "id": "dhubri",
+   "name": "Dhubri (Assam)",
+   "nameBn": "ধুবড়ি (আসাম)",
+   "lat": 26.02,
+   "lon": 89.98,
+   "country": "IN"
+  },
+  {
+   "id": "jalpaiguri",
+   "name": "Jalpaiguri (Teesta)",
+   "nameBn": "জলপাইগুড়ি (তিস্তা)",
+   "lat": 26.52,
+   "lon": 88.72,
+   "country": "IN"
+  },
+  {
+   "id": "bandarban",
+   "name": "Bandarban hills",
+   "nameBn": "বান্দরবান পাহাড়",
+   "lat": 22.2,
+   "lon": 92.22,
+   "country": "BD"
+  },
+  {
+   "id": "alikadam",
+   "name": "Alikadam hills (Matamuhuri)",
+   "nameBn": "আলীকদম পাহাড় (মাতামুহুরী)",
+   "lat": 21.65,
+   "lon": 92.31,
+   "country": "BD"
+  },
+  {
+   "id": "manikchhari",
+   "name": "Manikchhari hills (Halda)",
+   "nameBn": "মানিকছড়ি পাহাড় (হালদা)",
+   "lat": 22.85,
+   "lon": 91.85,
+   "country": "BD"
+  }
+ ],
+ "areas": [
+  {
+   "id": "parshuram",
+   "name": "Parshuram",
+   "nameBn": "পরশুরাম",
+   "district": "Feni",
+   "districtBn": "ফেনী",
+   "lat": 23.214,
+   "lon": 91.443,
+   "hazard": "flash",
+   "riverBn": "মুহুরী",
+   "river": "Muhuri",
+   "upstream": [
+    {
+     "station": "belonia",
+     "hours": [
+      3,
+      8
+     ]
+    },
+    {
+     "station": "santirbazar",
+     "hours": [
+      5,
+      10
+     ]
+    }
+   ]
+  },
+  {
+   "id": "fulgazi",
+   "name": "Fulgazi",
+   "nameBn": "ফুলগাজী",
+   "district": "Feni",
+   "districtBn": "ফেনী",
+   "lat": 23.137,
+   "lon": 91.416,
+   "hazard": "flash",
+   "riverBn": "মুহুরী",
+   "river": "Muhuri",
+   "upstream": [
+    {
+     "station": "belonia",
+     "hours": [
+      6,
+      12
+     ]
+    },
+    {
+     "station": "santirbazar",
+     "hours": [
+      8,
+      14
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chhagalnaiya",
+   "name": "Chhagalnaiya",
+   "nameBn": "ছাগলনাইয়া",
+   "district": "Feni",
+   "districtBn": "ফেনী",
+   "lat": 23.03,
+   "lon": 91.51,
+   "hazard": "flash",
+   "riverBn": "ফেনী নদী",
+   "river": "Feni",
+   "upstream": [
+    {
+     "station": "sabroom",
+     "hours": [
+      6,
+      12
+     ]
+    },
+    {
+     "station": "belonia",
+     "hours": [
+      10,
+      18
+     ]
+    }
+   ]
+  },
+  {
+   "id": "feni_sadar",
+   "name": "Feni Sadar",
+   "nameBn": "ফেনী সদর",
+   "district": "Feni",
+   "districtBn": "ফেনী",
+   "lat": 23.01,
+   "lon": 91.4,
+   "hazard": "flash",
+   "riverBn": "মুহুরী",
+   "river": "Muhuri",
+   "upstream": [
+    {
+     "station": "belonia",
+     "hours": [
+      18,
+      36
+     ]
+    },
+    {
+     "station": "santirbazar",
+     "hours": [
+      20,
+      40
+     ]
+    }
+   ],
+   "tideCell": {
+    "lat": 22.71,
+    "lon": 91.29
+   }
+  },
+  {
+   "id": "sonagazi",
+   "name": "Sonagazi",
+   "nameBn": "সোনাগাজী",
+   "district": "Feni",
+   "districtBn": "ফেনী",
+   "lat": 22.85,
+   "lon": 91.39,
+   "hazard": "flash",
+   "riverBn": "মুহুরী",
+   "river": "Muhuri",
+   "upstream": [
+    {
+     "station": "belonia",
+     "hours": [
+      36,
+      60
+     ]
+    },
+    {
+     "station": "sabroom",
+     "hours": [
+      36,
+      60
+     ]
+    }
+   ],
+   "tideCell": {
+    "lat": 22.71,
+    "lon": 91.29
+   }
+  },
+  {
+   "id": "burichang",
+   "name": "Burichang",
+   "nameBn": "বুড়িচং",
+   "district": "Cumilla",
+   "districtBn": "কুমিল্লা",
+   "lat": 23.55,
+   "lon": 91.12,
+   "hazard": "flash",
+   "riverBn": "গোমতী",
+   "river": "Gumti",
+   "upstream": [
+    {
+     "station": "udaipur",
+     "hours": [
+      12,
+      24
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chauddagram",
+   "name": "Chauddagram",
+   "nameBn": "চৌদ্দগ্রাম",
+   "district": "Cumilla",
+   "districtBn": "কুমিল্লা",
+   "lat": 23.22,
+   "lon": 91.31,
+   "hazard": "flash",
+   "riverBn": "ডাকাতিয়া",
+   "river": "Dakatia",
+   "upstream": [
+    {
+     "station": "belonia",
+     "hours": [
+      6,
+      12
+     ]
+    },
+    {
+     "station": "udaipur",
+     "hours": [
+      12,
+      24
+     ]
+    }
+   ]
+  },
+  {
+   "id": "akhaura",
+   "name": "Akhaura",
+   "nameBn": "আখাউড়া",
+   "district": "Brahmanbaria",
+   "districtBn": "ব্রাহ্মণবাড়িয়া",
+   "lat": 23.87,
+   "lon": 91.21,
+   "hazard": "flash",
+   "riverBn": "হাওড়া",
+   "river": "Haora",
+   "upstream": [
+    {
+     "station": "agartala",
+     "hours": [
+      3,
+      8
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chunarughat",
+   "name": "Chunarughat",
+   "nameBn": "চুনারুঘাট",
+   "district": "Habiganj",
+   "districtBn": "হবিগঞ্জ",
+   "lat": 24.21,
+   "lon": 91.52,
+   "hazard": "flash",
+   "riverBn": "খোয়াই",
+   "river": "Khowai",
+   "upstream": [
+    {
+     "station": "khowai",
+     "hours": [
+      8,
+      16
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sunamganj",
+   "name": "Sunamganj Sadar",
+   "nameBn": "সুনামগঞ্জ সদর",
+   "district": "Sunamganj",
+   "districtBn": "সুনামগঞ্জ",
+   "lat": 25.07,
+   "lon": 91.4,
+   "hazard": "both",
+   "riverBn": "সুরমা",
+   "river": "Surma",
+   "upstream": [
+    {
+     "station": "mawsynram",
+     "hours": [
+      6,
+      18
+     ]
+    },
+    {
+     "station": "cherrapunji",
+     "hours": [
+      8,
+      20
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 25.025,
+    "lon": 91.325
+   }
+  },
+  {
+   "id": "chhatak",
+   "name": "Chhatak",
+   "nameBn": "ছাতক",
+   "district": "Sunamganj",
+   "districtBn": "সুনামগঞ্জ",
+   "lat": 25.04,
+   "lon": 91.67,
+   "hazard": "both",
+   "riverBn": "সুরমা",
+   "river": "Surma",
+   "upstream": [
+    {
+     "station": "cherrapunji",
+     "hours": [
+      6,
+      12
+     ]
+    },
+    {
+     "station": "mawsynram",
+     "hours": [
+      8,
+      16
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 25.025,
+    "lon": 91.575
+   }
+  },
+  {
+   "id": "companiganj",
+   "name": "Companiganj",
+   "nameBn": "কোম্পানীগঞ্জ",
+   "district": "Sylhet",
+   "districtBn": "সিলেট",
+   "lat": 25.07,
+   "lon": 91.75,
+   "hazard": "flash",
+   "riverBn": "ধলাই",
+   "river": "Dhalai",
+   "upstream": [
+    {
+     "station": "cherrapunji",
+     "hours": [
+      3,
+      8
+     ]
+    }
+   ]
+  },
+  {
+   "id": "gowainghat",
+   "name": "Gowainghat",
+   "nameBn": "গোয়াইনঘাট",
+   "district": "Sylhet",
+   "districtBn": "সিলেট",
+   "lat": 25.1,
+   "lon": 91.95,
+   "hazard": "flash",
+   "riverBn": "সারি-গোয়াইন",
+   "river": "Sari-Goyain",
+   "upstream": [
+    {
+     "station": "jowai",
+     "hours": [
+      4,
+      10
+     ]
+    },
+    {
+     "station": "cherrapunji",
+     "hours": [
+      4,
+      10
+     ]
+    }
+   ]
+  },
+  {
+   "id": "durgapur",
+   "name": "Durgapur",
+   "nameBn": "দুর্গাপুর",
+   "district": "Netrokona",
+   "districtBn": "নেত্রকোনা",
+   "lat": 25.12,
+   "lon": 90.68,
+   "hazard": "both",
+   "riverBn": "সোমেশ্বরী",
+   "river": "Someshwari",
+   "upstream": [
+    {
+     "station": "tura",
+     "hours": [
+      6,
+      12
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 25.025,
+    "lon": 90.575
+   }
+  },
+  {
+   "id": "kurigram",
+   "name": "Kurigram Sadar",
+   "nameBn": "কুড়িগ্রাম সদর",
+   "district": "Kurigram",
+   "districtBn": "কুড়িগ্রাম",
+   "lat": 25.81,
+   "lon": 89.64,
+   "hazard": "riverine",
+   "riverBn": "ব্রহ্মপুত্র-ধরলা",
+   "river": "Brahmaputra",
+   "upstream": [
+    {
+     "station": "dhubri",
+     "hours": [
+      24,
+      48
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 25.725,
+    "lon": 89.725
+   }
+  },
+  {
+   "id": "chilmari",
+   "name": "Chilmari",
+   "nameBn": "চিলমারী",
+   "district": "Kurigram",
+   "districtBn": "কুড়িগ্রাম",
+   "lat": 25.56,
+   "lon": 89.68,
+   "hazard": "riverine",
+   "riverBn": "ব্রহ্মপুত্র",
+   "river": "Brahmaputra",
+   "upstream": [
+    {
+     "station": "dhubri",
+     "hours": [
+      24,
+      48
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 25.575,
+    "lon": 89.675
+   }
+  },
+  {
+   "id": "fulchhari",
+   "name": "Fulchhari",
+   "nameBn": "ফুলছড়ি",
+   "district": "Gaibandha",
+   "districtBn": "গাইবান্ধা",
+   "lat": 25.19,
+   "lon": 89.63,
+   "hazard": "riverine",
+   "riverBn": "যমুনা",
+   "river": "Jamuna",
+   "upstream": [
+    {
+     "station": "dhubri",
+     "hours": [
+      48,
+      72
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 25.075,
+    "lon": 89.675
+   }
+  },
+  {
+   "id": "islampur",
+   "name": "Islampur",
+   "nameBn": "ইসলামপুর",
+   "district": "Jamalpur",
+   "districtBn": "জামালপুর",
+   "lat": 25.08,
+   "lon": 89.79,
+   "hazard": "riverine",
+   "riverBn": "যমুনা",
+   "river": "Jamuna",
+   "upstream": [
+    {
+     "station": "dhubri",
+     "hours": [
+      48,
+      72
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 25.025,
+    "lon": 89.675
+   }
+  },
+  {
+   "id": "sirajganj",
+   "name": "Sirajganj Sadar",
+   "nameBn": "সিরাজগঞ্জ সদর",
+   "district": "Sirajganj",
+   "districtBn": "সিরাজগঞ্জ",
+   "lat": 24.45,
+   "lon": 89.7,
+   "hazard": "riverine",
+   "riverBn": "যমুনা",
+   "river": "Jamuna",
+   "upstream": [
+    {
+     "station": "dhubri",
+     "hours": [
+      72,
+      120
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 24.525,
+    "lon": 89.675
+   }
+  },
+  {
+   "id": "hatibandha",
+   "name": "Hatibandha",
+   "nameBn": "হাতীবান্ধা",
+   "district": "Lalmonirhat",
+   "districtBn": "লালমনিরহাট",
+   "lat": 26.13,
+   "lon": 89.13,
+   "hazard": "both",
+   "riverBn": "তিস্তা",
+   "river": "Teesta",
+   "upstream": [
+    {
+     "station": "jalpaiguri",
+     "hours": [
+      12,
+      24
+     ]
+    }
+   ],
+   "riverCell": {
+    "lat": 26.025,
+    "lon": 89.075
+   }
+  },
+  {
+   "id": "satkania",
+   "name": "Satkania",
+   "nameBn": "সাতকানিয়া",
+   "district": "Chattogram",
+   "districtBn": "চট্টগ্রাম",
+   "lat": 22.08,
+   "lon": 92.05,
+   "hazard": "flash",
+   "riverBn": "সাঙ্গু-ডলু",
+   "river": "Sangu",
+   "upstream": [
+    {
+     "station": "bandarban",
+     "hours": [
+      6,
+      12
+     ]
+    }
+   ],
+   "tideCell": {
+    "lat": 22.04,
+    "lon": 91.79
+   }
+  },
+  {
+   "id": "chakaria",
+   "name": "Chakaria",
+   "nameBn": "চকরিয়া",
+   "district": "Cox's Bazar",
+   "districtBn": "কক্সবাজার",
+   "lat": 21.77,
+   "lon": 92.08,
+   "hazard": "flash",
+   "riverBn": "মাতামুহুরী",
+   "river": "Matamuhuri",
+   "upstream": [
+    {
+     "station": "alikadam",
+     "hours": [
+      6,
+      14
+     ]
+    },
+    {
+     "station": "bandarban",
+     "hours": [
+      8,
+      16
+     ]
+    }
+   ],
+   "tideCell": {
+    "lat": 21.79,
+    "lon": 91.875
+   }
+  },
+  {
+   "id": "lohagara",
+   "name": "Lohagara",
+   "nameBn": "লোহাগাড়া",
+   "district": "Chattogram",
+   "districtBn": "চট্টগ্রাম",
+   "lat": 21.99,
+   "lon": 92.1,
+   "hazard": "flash",
+   "riverBn": "ডলু-টংকাবতী",
+   "river": "Dolu",
+   "upstream": [
+    {
+     "station": "bandarban",
+     "hours": [
+      4,
+      10
+     ]
+    }
+   ],
+   "tideCell": {
+    "lat": 22.04,
+    "lon": 91.79
+   }
+  },
+  {
+   "id": "hathazari",
+   "name": "Hathazari",
+   "nameBn": "হাটহাজারী",
+   "district": "Chattogram",
+   "districtBn": "চট্টগ্রাম",
+   "lat": 22.5,
+   "lon": 91.8,
+   "hazard": "flash",
+   "riverBn": "হালদা",
+   "river": "Halda",
+   "upstream": [
+    {
+     "station": "manikchhari",
+     "hours": [
+      6,
+      12
+     ]
+    }
+   ],
+   "tideCell": {
+    "lat": 22.21,
+    "lon": 91.79
+   }
+  }
+ ]
+}

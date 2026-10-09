@@ -1,0 +1,9 @@
+node_modules
+.next
+.agam-data
+.env*
+video/build
+video/out
+video/voice
+video/voice-bn
+scripts/.cache

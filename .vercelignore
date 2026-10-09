@@ -1,0 +1,9 @@
+node_modules
+.next
+.agam-data
+.env*
+!.env.example
+video
+scripts/.cache
+*.log
+tsconfig.tsbuildinfo
