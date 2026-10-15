@@ -23,7 +23,8 @@
     "travel-times": "node scripts/travel-times.mjs",
     "start:all": "node scripts/start-all.mjs",
     "test:safety": "tsx scripts/test-safety.mts",
-    "test": "tsx scripts/test-replies.mts && tsx scripts/test-safety.mts"
+    "test": "tsx scripts/test-replies.mts && tsx scripts/test-safety.mts",
+    "eval:ai": "node --env-file-if-exists=.env.local --import tsx scripts/eval-ai.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",

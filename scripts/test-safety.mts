@@ -13,12 +13,19 @@ process.env.INBOUND_SECRET = "test";
 for (const k of ["SMS_API_URL", "SMS_PROVIDER", "VOICE_API_URL", "TELEGRAM_BOT_TOKEN", "ANTHROPIC_API_KEY", "VERCEL", "TRUST_PROXY"]) delete process.env[k];
 
 // ---- fake network: SMS / IVR gateways and the Telegram Bot API ----
-type Sent = { url: string; body?: string; at: number };
+type Sent = { url: string; body?: string; headers?: Record<string, string>; at: number };
 const net: Sent[] = [];
 let gatewayDelayMs = 0;
+/** Fake AI providers: Gemini answers per model id; Groq has one behaviour. */
+const aiMock: { gemini: Record<string, (body: { generationConfig?: { responseSchema?: unknown } }) => Response>; groq: () => Response } = { gemini: {}, groq: () => new Response("down", { status: 503 }) };
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
   const url = String(input instanceof Request ? input.url : input);
-  net.push({ url, body: typeof init?.body === "string" ? init.body : undefined, at: Date.now() });
+  net.push({ url, body: typeof init?.body === "string" ? init.body : undefined, headers: init?.headers as Record<string, string> | undefined, at: Date.now() });
+  if (url.startsWith("https://generativelanguage.googleapis.com/")) {
+    const model = decodeURIComponent(url.match(/models\/([^:]+):generateContent/)?.[1] ?? "");
+    return aiMock.gemini[model]?.(JSON.parse(String(init?.body ?? "{}"))) ?? new Response(JSON.stringify({ error: { message: "model not found" } }), { status: 404 });
+  }
+  if (url.startsWith("https://api.groq.com/")) return aiMock.groq();
   if (url.startsWith("https://api.telegram.org/")) {
     const method = url.split("/").pop();
     return Response.json({ ok: true, result: method === "getMe" ? { username: "agam_test_bot" } : { message_id: 1 } });
@@ -227,7 +234,7 @@ check("malformed JSON gives null (→ 400), not a crash", (await jsonBody(new Re
 check("ids like __proto__ / constructor match no area", !areaById["__proto__" as string] && !areaById["constructor"] && Boolean(areaById.parshuram));
 
 // ---------- 15. AI spending guard: over the hourly cap, no API call is made and the template is used ----------
-const { composeAlert } = await import("../src/lib/claude-alert");
+const { composeAlert } = await import("../src/lib/ai-writer");
 const { attempts } = await import("../src/lib/store");
 process.env.ANTHROPIC_API_KEY = "test-key-not-real";
 for (let i = 0; i < 40; i++) attempts.hit("ai:calls", 60);
@@ -235,6 +242,70 @@ const aiBefore = net.filter((n) => n.url.includes("anthropic.com")).length;
 const guarded = await composeAlert(dangerFacts);
 check("over the AI budget: no API call, verified template, clear note", guarded.source === "template" && /paused/.test(guarded.note ?? "") && net.filter((n) => n.url.includes("anthropic.com")).length === aiBefore);
 delete process.env.ANTHROPIC_API_KEY;
+
+// ---------- 16. Free AI providers: Gemini first, Groq as backup, every draft still checked ----------
+const store = await import("../src/lib/store");
+const resetAi = () => { attempts.clear("ai:calls"); store.update("ai-drafts", {}, () => ({})); };
+const geminiOk = (c: unknown) => () => Response.json({ candidates: [{ content: { parts: [{ text: JSON.stringify(c) }] }, finishReason: "STOP" }] });
+const groqOk = (c: unknown) => () => Response.json({ choices: [{ message: { content: JSON.stringify(c) }, finish_reason: "stop" }] });
+const limited = () => new Response(JSON.stringify({ error: { message: "quota" } }), { status: 429 });
+const aiCalls = (host: string) => net.filter((n) => n.url.includes(host)).length;
+process.env.GEMINI_API_KEY = "test-gemini-key";
+const LITE = "gemini-3.5-flash-lite", FLASH = "gemini-3.8-flash";
+const facts2 = buildFacts(areaById.fulgazi, feniAt("fulgazi", "2024-08-20T12"));
+const good2 = templateAlert(facts2);
+
+resetAi();
+aiMock.gemini = { [LITE]: geminiOk(good2) };
+let g0 = aiCalls("generativelanguage");
+let r = await composeAlert(facts2);
+const gReq = net.filter((n) => n.url.includes("generativelanguage")).at(-1)!;
+const gBody = JSON.parse(gReq.body ?? "{}");
+check("Gemini Flash-Lite (free) writes the draft", r.source === "ai" && r.writer === `Gemini · ${LITE}` && aiCalls("generativelanguage") === g0 + 1);
+check("Gemini request: key in header (not URL), system prompt, JSON schema", !gReq.url.includes("key=") && gReq.headers?.["x-goog-api-key"] === "test-gemini-key" && Boolean(gBody.systemInstruction?.parts?.[0]?.text) && gBody.generationConfig?.responseMimeType === "application/json" && Boolean(gBody.generationConfig?.responseSchema));
+g0 = aiCalls("generativelanguage");
+r = await composeAlert(facts2);
+check("same facts again reuse the verified draft — no new AI call", r.source === "ai" && /reused/.test(r.note ?? "") && aiCalls("generativelanguage") === g0);
+
+resetAi();
+aiMock.gemini = { [LITE]: limited, [FLASH]: geminiOk(good2) };
+r = await composeAlert(facts2);
+check("Flash-Lite rate-limited → Gemini Flash takes over", r.writer === `Gemini · ${FLASH}` && /rate limit/.test(r.note ?? ""));
+
+resetAi();
+aiMock.gemini = { [LITE]: geminiOk({ ...good2, voice_bn: good2.voice_bn + " চিন্তার কিছু নেই।" }), [FLASH]: geminiOk(good2) };
+r = await composeAlert(facts2);
+check("a draft that fails a safety check is replaced by the next model's", r.writer === `Gemini · ${FLASH}` && /failed Alert level stated/.test(r.note ?? ""));
+
+resetAi();
+process.env.GROQ_API_KEY = "test-groq-key";
+aiMock.gemini = { [LITE]: limited, [FLASH]: limited };
+aiMock.groq = groqOk(good2);
+r = await composeAlert(facts2);
+const qReq = net.filter((n) => n.url.includes("api.groq.com")).at(-1)!;
+check("Gemini out of free quota → Groq (free) writes it", r.writer === "Groq · openai/gpt-oss-120b" && JSON.parse(qReq.body ?? "{}").response_format?.json_schema?.strict === true);
+
+resetAi();
+process.env.GEMINI_MODELS = "gemini-retired-model, " + LITE;
+aiMock.gemini = { [LITE]: geminiOk(good2) };
+r = await composeAlert(facts2);
+check("a renamed/retired model is skipped automatically (GEMINI_MODELS)", r.writer === `Gemini · ${LITE}` && /not available/.test(r.note ?? ""));
+delete process.env.GEMINI_MODELS;
+
+resetAi();
+aiMock.gemini = { [LITE]: (body) => (body.generationConfig?.responseSchema ? new Response(JSON.stringify({ error: { message: 'Invalid JSON payload received. Unknown name "responseSchema"' } }), { status: 400 }) : geminiOk(good2)()) };
+r = await composeAlert(facts2);
+check("if Gemini rejects the schema format, plain JSON mode is used automatically", r.writer === `Gemini · ${LITE}`);
+
+resetAi();
+aiMock.gemini = { [LITE]: () => Response.json({ candidates: [{ content: { parts: [{ text: "not json" }] }, finishReason: "STOP" }] }), [FLASH]: () => Response.json({ promptFeedback: { blockReason: "SAFETY" } }) };
+aiMock.groq = () => new Response("bad gateway", { status: 502 });
+r = await composeAlert(facts2);
+check("every provider failing → verified template, with the reasons", r.source === "template" && r.checks.every((c) => c.ok) && /valid JSON/.test(r.note ?? "") && /blocked/.test(r.note ?? "") && /HTTP 502/.test(r.note ?? ""));
+check("at most 4 model calls per draft", (r.note?.split("; ").length ?? 0) <= 4);
+delete process.env.GEMINI_API_KEY;
+delete process.env.GROQ_API_KEY;
+resetAi();
 
 console.log(results);
 const failed = Object.entries(results).filter(([, ok]) => !ok);

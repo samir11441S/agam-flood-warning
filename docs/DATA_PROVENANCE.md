@@ -35,9 +35,13 @@
 
 | Model | Provider | Where | Purpose |
 |---|---|---|---|
-| `claude-opus-5-5` | Anthropic (Claude API) | `src/lib/claude-alert.ts` | Writes the Bangla SMS, voice-call script, optional dialect version, checklist and English official summary from verified facts. Structured JSON output. Server-side refusal fallback (`fallbacks: "default"`) enabled. |
+| `gemini-3.5-flash-lite`, then `gemini-3.8-flash` (default) | Google Gemini API — **free tier** | `src/lib/ai-writer.ts` | Writes the Bangla SMS, voice-call script, optional dialect version, checklist and English official summary from verified facts. Structured JSON output (response schema). Flash-Lite first (fast, larger free quota); Flash if a draft fails a check. |
+| `openai/gpt-oss-120b` (backup) | Groq API — **free tier** | `src/lib/ai-writer.ts` | Same task, used automatically when Gemini's free quota is used up. Strict JSON schema. |
+| `claude-opus-5-5` (optional) | Anthropic (Claude API) — paid | `src/lib/ai-writer.ts` | Same task, only if a key is set. |
 
-The **risk decision is not made by an LLM.** Alert levels come from a transparent, rule-based engine (`src/lib/risk.ts`) using thresholds derived from data. Claude only words the message. Its output must pass seven automatic checks (correct level word with the matching action, correct area, no invented numbers — also in the English summary — SMS length, 999 included, checklist present, sender named), or the verified template is sent instead. A signed-in officer approves every alert before it goes out (two officers for Danger if the committee turns that on).
+**Free-tier data use:** on free tiers, providers may use prompts to improve their products. Agam sends them **only verified, non-personal facts** (area, level, rainfall, arrival window, committee name) — never household names, phone numbers or residents' messages — so no personal data is exposed.
+
+The **risk decision is not made by an LLM.** Alert levels come from a transparent, rule-based engine (`src/lib/risk.ts`) using thresholds derived from data. The AI model only words the message. Its output must pass seven automatic checks (correct level word with the matching action, correct area, no invented numbers — also in the English summary — SMS length, 999 included, checklist present, sender named), or the verified template is sent instead. A signed-in officer approves every alert before it goes out (two officers for Danger if the committee turns that on).
 
 ## Responsible-AI safeguards
 

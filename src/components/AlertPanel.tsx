@@ -48,14 +48,14 @@ export default function AlertPanel({ data, status, onApprove, onReject, busy }: 
   onReject: () => void;
   busy: boolean;
 }) {
-  const { content, source, checks, note } = data.result;
+  const { content, source, writer, checks, note } = data.result;
   const allClear = data.kind === "all-clear";
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500">{allClear ? "Draft all-clear" : "Draft alert"} — needs human approval</h3>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${source === "claude" ? "bg-violet-100 text-violet-800" : "bg-stone-200 text-stone-700"}`}>
-          {source === "claude" ? "Written by Claude, verified" : "Verified template"}
+        <span title={writer} className={`rounded-full px-2 py-0.5 text-xs font-medium ${source === "ai" ? "bg-violet-100 text-violet-800" : "bg-stone-200 text-stone-700"}`}>
+          {source === "ai" ? `Written by ${writer?.split(" · ")[0] ?? "AI"}, verified` : "Verified template"}
         </span>
       </div>
       {note && <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900">{note}</p>}

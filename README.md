@@ -10,7 +10,7 @@ Agam:
 
 1. **Watches rain upstream, across the border, every hour**: 15 rain points in Tripura, Meghalaya, Assam, West Bengal and the Chittagong hills, plus 24 flood-prone upazilas, 9 river points and 4 river mouths (tides).
 2. **Judges it against local history.** Each location's thresholds come from 30 years of rainfall, 40 years of river flow and 2.5 years of tides ("rain this heavy happens once every 2 / 5 years *here*"). Residents' "water rising" reports count as evidence too.
-3. **Turns risk into action — safely.** Claude writes a plain-Bangla SMS, a voice-call script, a loudspeaker announcement and an English summary for officials. Seven automatic checks verify every draft; a signed-in officer (or two, for Danger) approves it — from the dashboard, by SMS reply or by Telegram. At night, unanswered alerts escalate to the next officer.
+3. **Turns risk into action — safely.** An AI model (free Google Gemini by default) writes a plain-Bangla SMS, a voice-call script, a loudspeaker announcement and an English summary for officials. Seven automatic checks verify every draft; a signed-in officer (or two, for Danger) approves it — from the dashboard, by SMS reply or by Telegram. At night, unanswered alerts escalate to the next officer.
 4. **Reaches everyone, most vulnerable first.** Voice calls and SMS to every registered phone (retried, then a backup number), volunteer door-knock lists for homes without a phone, loudspeaker scripts for mosques and CPP volunteers, and "safe / need help" replies from **any phone**: reply to the SMS with `1` or `2`, press 1 or 2 during the voice call, or tap a Telegram button. Help requests go straight to the area's volunteers and onto the rescue list.
 
 > Prototype for research and demonstration — not an official warning service. Household data in the demo is synthetic.
@@ -33,14 +33,16 @@ Then open **http://localhost:3000** in your browser. That's it — the four floo
 
 To draft and send alerts, click **Officer sign in**. With no officers configured Agam runs in **DEMO MODE**: the PIN is `0000` and nothing can ever be sent to a real phone.
 
-### Optional: let Claude write the alerts
+### Optional: let AI write the alerts — free
 
-Without a key, Agam uses its built-in verified Bangla templates. To have Claude write the alerts:
+Without a key, Agam uses its built-in verified Bangla templates. To have an AI write them, **for free**:
 
-1. Create an API key at [console.anthropic.com](https://console.anthropic.com).
+1. Sign in at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) with any Google account and press **Create API key** (no credit card).
 2. Copy the file `.env.example` to `.env.local`.
-3. Paste your key after `ANTHROPIC_API_KEY=` in `.env.local` (never share this file or put it on GitHub).
-4. Stop the dev server (Ctrl+C) and run `npm run dev` again.
+3. Paste your key after `GEMINI_API_KEY=` in `.env.local` (never share this file or put it on GitHub).
+4. Stop the dev server (Ctrl+C) and run `npm run dev` again. Drafts now show **"Written by Gemini, verified"**.
+
+Optional backup, also free: a [Groq](https://console.groq.com/keys) key in `GROQ_API_KEY` takes over automatically when Gemini's free quota runs out. `ANTHROPIC_API_KEY` (paid) adds Claude. The order is `AI_PROVIDERS=gemini,groq,claude`; model names are set in `GEMINI_MODELS` / `GROQ_MODELS` if a provider renames them. Whatever writes it, every draft must pass the 7 safety checks or the verified template is used, identical facts reuse an earlier verified draft, and AI calls are capped per hour (`AI_CALLS_PER_HOUR`) to stay inside free quotas.
 
 ### Optional: real phone alerts with replies (Telegram)
 
@@ -166,7 +168,7 @@ npm run video
 
 1. Push this folder to a GitHub repository.
 2. Go to [vercel.com](https://vercel.com), sign in with GitHub and choose **Add New → Project** → pick the repo → **Deploy**.
-3. (Optional) Under **Settings → Environment Variables**, add `ANTHROPIC_API_KEY`, then redeploy.
+3. (Optional) Under **Settings → Environment Variables**, add `GEMINI_API_KEY` (free) and `AGAM_SECRET` (any long random text), then redeploy.
 
 Or from this folder with the Vercel CLI: `vercel deploy --prod` (`vercel.json` tells Vercel it is a Next.js app). On Vercel, Agam stores its data in temporary server storage (`/tmp`), so it is right for the public demo but not for a real pilot — use Docker for that.
 
@@ -178,7 +180,7 @@ Or from this folder with the Vercel CLI: `vercel deploy --prod` (`vercel.json` t
 |---|---|
 | `src/lib/risk.ts` | The risk engine: upstream rain (24 h / 72 h / 5 days), local rain, forecast, river flow, tides and community reports → Normal / Watch / Warning / Danger |
 | `src/lib/alerts.ts` | Alert facts, Bangla templates, loudspeaker script, volunteer SMS and the 7 safety checks |
-| `src/lib/claude-alert.ts` | Claude writes the alert from verified facts; falls back to the template if any check fails |
+| `src/lib/ai-writer.ts` | AI writes the alert from verified facts — Gemini (free) → Groq (free) → Claude (optional); falls back to the template if any check fails |
 | `src/lib/alert-flow.ts` | Draft → approve (1 or 2 officers) → send on every channel → outbox + audit log |
 | `src/lib/escalation.ts` | Officer notification, escalation, SMS approvals, Danger auto-send policy |
 | `src/lib/deliveries.ts` | Call retries → backup number → volunteer hand-off |

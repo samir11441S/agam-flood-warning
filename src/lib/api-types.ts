@@ -32,7 +32,7 @@ export type AlertResponse = {
   kind: "warning" | "all-clear";
   approvalsNeeded: number;
   facts: AlertFacts;
-  result: { content: AlertContent; source: "claude" | "template"; checks: Check[]; note?: string };
+  result: { content: AlertContent; source: "ai" | "template"; writer?: string; checks: Check[]; note?: string };
   announcement: string;
   plan: DispatchPlan;
 };

@@ -2,8 +2,8 @@
 
 | # | Purpose | Where used | Output summary | Proprietary? |
 |---|---|---|---|---|
-| P1 | Alert writer (system prompt) | `src/lib/claude-alert.ts` → `SYSTEM_PROMPT` | Structured JSON: `sms_bn`, `voice_bn`, `dialect_voice`, `checklist_bn`, `official_summary_en` | No — published below |
-| P2 | Alert facts (user message) | `src/lib/claude-alert.ts` → `composeAlert()` | Verified facts as JSON: area, level, cause, arrival time, shelter, dialect, allowed numbers, reference template | No |
+| P1 | Alert writer (system prompt) — Gemini (free) / Groq / Claude | `src/lib/ai-writer.ts` → `SYSTEM_PROMPT` | Structured JSON: `sms_bn`, `voice_bn`, `dialect_voice`, `checklist_bn`, `official_summary_en` | No — published below |
+| P2 | Alert facts (user message) | `src/lib/ai-writer.ts` → `composeAlert()` | Verified facts as JSON: area, level, cause, arrival time, shelter, dialect, allowed numbers, reference template | No |
 | P3 | Build prompt — product and architecture | Claude Code (build time) | Project plan: risk engine, replays, alert pipeline, docs | No |
 | P4 | Build prompt — "find out why Meghalaya never reaches Danger" | Claude Code (build time) | Found the ERA5 vs forecast-model bias; added the `modelScale` bias correction and pinned observed data to ERA5 | No |
 

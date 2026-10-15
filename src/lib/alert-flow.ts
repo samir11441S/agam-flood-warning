@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 import type { OutboxEntry } from "./api-types";
 import { allClearAlert, allClearFacts, announcementScript, buildFacts, validateAlert, volunteerSms } from "./alerts";
 import { sendSms, sendVoice, smsMode, voiceMode, type ChannelMode } from "./channels";
-import { composeAlert, type ComposeResult } from "./claude-alert";
+import { composeAlert, type ComposeResult } from "./ai-writer";
 import { areaById } from "./data";
 import { dispatchPlan, syntheticHouseholds, type DispatchPlan } from "./households";
 import { audit, officers, settings, type PublicOfficer } from "./officers";
@@ -49,7 +49,7 @@ export async function createDraft(areaId: string, assessment: Assessment, scenar
     createdAt: new Date().toISOString(), createdBy: by, status: "pending", approvals: [], escalations: [], scenario,
   };
   alerts.save(alert);
-  audit.add({ who: by, action: `drafted ${facts.levelEn} alert`, areaId, alertId: alert.id, detail: result.source === "claude" ? "written by Claude, all checks passed" : result.note ?? "verified template" });
+  audit.add({ who: by, action: `drafted ${facts.levelEn} alert`, areaId, alertId: alert.id, detail: result.source === "ai" ? `written by ${result.writer ?? "AI"}, all checks passed` : result.note ?? "verified template" });
   return { alert, result, facts };
 }
 

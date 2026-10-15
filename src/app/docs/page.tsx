@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import geo from "@/data/geo.json";
 import DocsLive from "@/components/DocsLive";
-import { MODEL, SYSTEM_PROMPT } from "@/lib/claude-alert";
+import { SYSTEM_PROMPT } from "@/lib/ai-writer";
 import backtest from "../../../docs/evaluation-summary.json";
 
 export const metadata: Metadata = {
@@ -169,7 +169,7 @@ export default function DocsPage() {
               { title: "Watch upstream", body: `${geo.stations.length} rain points in Tripura, Meghalaya, Assam, West Bengal and the Chittagong hills, plus local rain, 9 river points and 4 river mouths (tides) — every hour.` },
               { title: "Judge against local history", body: "2/5/10-year levels per location from 30 yrs of rain, 40 yrs of river flow, 2.5 yrs of tides. Residents' “water rising” reports count too." },
               { title: "Explain the risk", body: "Normal / Watch / Warning / Danger, with the evidence, the estimated arrival time and today's official FFWC/BMD status." },
-              { title: "Write & verify the alert", body: "Claude writes a plain-Bangla SMS, voice call and loudspeaker script from verified facts; 7 automatic checks; an officer approves (two for Danger)." },
+              { title: "Write & verify the alert", body: "An AI model (free Google Gemini by default) writes a plain-Bangla SMS, voice call and loudspeaker script from verified facts; 7 automatic checks; an officer approves (two for Danger)." },
               { title: "Reach everyone", body: "Voice calls + SMS (retry → backup number), volunteer door-knocks for homes without a phone, mosque/CPP loudspeakers. Residents reply “1 safe / 2 need help”." },
             ]}
           />
@@ -180,7 +180,7 @@ export default function DocsPage() {
             <Card title="Input → processing → output">
               <p><b>Inputs:</b> Open-Meteo live rain, river (GloFAS) and tide; precomputed thresholds; area/station graph with travel times; residents&apos; reports via Telegram and SMS.</p>
               <p><b>Processing:</b> a transparent rule-based risk engine (<code>src/lib/risk.ts</code>) compares rolling 24 h / 72 h / 5-day totals against each location&apos;s return levels, with a per-location bias factor between datasets.</p>
-              <p><b>Output:</b> a level per area with evidence → verified alert facts → Claude-written Bangla messages → officer approval → five delivery channels → replies and rescue list.</p>
+              <p><b>Output:</b> a level per area with evidence → verified alert facts → AI-written Bangla messages → officer approval → five delivery channels → replies and rescue list.</p>
             </Card>
             <Card title="Components">
               <ul className="list-disc space-y-1 pl-5">
@@ -197,7 +197,7 @@ export default function DocsPage() {
             rows={[
               [<code key="p">src/lib/risk.ts</code>, "Risk engine: upstream rain, local rain, forecast, river flow, tides and community reports → level"],
               [<code key="p">src/lib/alerts.ts</code>, "Alert facts, Bangla templates, loudspeaker script, volunteer SMS and the 7 safety checks"],
-              [<code key="p">src/lib/claude-alert.ts</code>, "Claude writes the alert from verified facts; falls back to the template if any check fails"],
+              [<code key="p">src/lib/ai-writer.ts</code>, "AI writes the alert from verified facts (Gemini free tier → Groq free tier → optional Claude); falls back to the template if any check fails"],
               [<code key="p">src/lib/alert-flow.ts</code>, "Draft → approve (1 or 2 officers) → send on every channel → outbox + audit log"],
               [<code key="p">src/lib/escalation.ts</code>, "Officer notification, escalation, SMS approvals, Danger auto-send policy"],
               [<code key="p">src/lib/deliveries.ts</code>, "Call retries → backup number → volunteer hand-off"],
@@ -208,7 +208,7 @@ export default function DocsPage() {
         <Section id="ai" title="AI design" kicker="Where AI is used — and where it is not">
           <div className="grid gap-3 md:grid-cols-3">
             <Card title="Rules decide the risk">The alert level comes from a transparent engine with thresholds derived from data. No LLM decides whether people evacuate, so every level can be explained and audited.</Card>
-            <Card title={`Claude writes the words (${MODEL})`}>One structured-output call returns the SMS, a 60–100 word voice script, an optional dialect version, a checklist and an English summary for officials. Low reasoning effort; Zod schema; server-side refusal fallback.</Card>
+            <Card title="AI writes the words — on free APIs">Google Gemini (free tier: Flash-Lite, then Flash) writes the SMS, a 60–100 word voice script, an optional dialect version, a checklist and an English summary in one structured-JSON call. If Gemini is rate-limited, Groq&apos;s free tier (gpt-oss-120b) takes over; Claude is an optional paid upgrade. Identical facts reuse the earlier verified draft, and calls are capped per hour.</Card>
             <Card title="Code verifies everything">Every draft passes 7 automatic checks or the verified template is used. The AI may only use numbers from an allow-list built from the facts. Agam works fully without an API key.</Card>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -361,7 +361,7 @@ export default function DocsPage() {
             head={["Criterion", "Evidence in Agam"]}
             rows={[
               ["Innovation (20)", "Watches rain across the border instead of forecasting rivers; per-location history instead of national thresholds; AI for last-mile language, rules for decisions."],
-              ["Technical execution (20)", <>Explainable engine, bias correction between datasets, Claude with structured outputs and 7 checks, MCP server, worker with escalation and retries — <a className="underline" href={REPO}>open source</a>.</>],
+              ["Technical execution (20)", <>Explainable engine, bias correction between datasets, free-tier AI (Gemini → Groq) with structured outputs and 7 checks, MCP server, worker with escalation and retries — <a className="underline" href={REPO}>open source</a>.</>],
               ["Business model + global readiness (20)", <>Four paying customer types, unit costs, global open data and a config-file path to new countries — <a className="underline" href="#business">Business</a>.</>],
               ["Real-world impact + ethical AI (20)", <>Feni 2024 replay, {backtest.onTime}/{backtest.events} backtest, human approval, consent-based data, published misses — <a className="underline" href="#responsible">Responsible AI</a>.</>],
               ["Scalability + NRB collaboration (10)", <>Docker pilot hosting, modular channels, MCP; NRB collaborator being recruited — <a className="underline" href="#scale">Scale</a>.</>],

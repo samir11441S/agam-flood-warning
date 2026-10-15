@@ -14,7 +14,7 @@
 **Challenge:** Climate Shield — climate risk prediction and disaster early warning
 
 **Public summary:**
-In August 2024, record rain in the hills of Tripura sent flash floods into Feni, Cumilla and Noakhali within hours. 5.8 million people were affected and 71 died, and officials said there was no forecast of a flood that severe. Agam checks rainfall every hour at 15 upstream points across the border, plus 24 flood-prone upazilas, 9 river points and the tide at the river mouths, and judges it against each location's own history. Residents' "water rising" reports count as evidence too. When risk rises, Agam drafts the alert by itself: Claude writes a plain-Bangla SMS, voice call and loudspeaker announcement, seven automatic checks verify it, and a signed-in local officer approves it — from the dashboard, by SMS reply or on Telegram, with escalation to the next officer if nobody answers. Agam then reaches every household: voice calls and SMS (retried, then a backup number), volunteer door-knocks for homes without a phone, the elderly, disabled and pregnant first. Replayed on the 2024 Feni flood using only the data available at each hour, Agam reached Warning on 17 August and Danger for Feni Sadar at noon on 19 August (heavy rain in Tripura plus a spring tide), and for Parshuram at noon on 20 August — while every forecast stayed quiet. In a 30-year backtest it raised Danger on or before the onset of 20 of 35 documented area-floods, with a median of 0.6 Danger episodes per area per year. Agam is a working prototype: no community uses it yet, and a pilot is our next step.
+In August 2024, record rain in the hills of Tripura sent flash floods into Feni, Cumilla and Noakhali within hours. 5.8 million people were affected and 71 died, and officials said there was no forecast of a flood that severe. Agam checks rainfall every hour at 15 upstream points across the border, plus 24 flood-prone upazilas, 9 river points and the tide at the river mouths, and judges it against each location's own history. Residents' "water rising" reports count as evidence too. When risk rises, Agam drafts the alert by itself: An AI model — Google Gemini on its free tier — writes a plain-Bangla SMS, voice call and loudspeaker announcement, seven automatic checks verify it, and a signed-in local officer approves it — from the dashboard, by SMS reply or on Telegram, with escalation to the next officer if nobody answers. Agam then reaches every household: voice calls and SMS (retried, then a backup number), volunteer door-knocks for homes without a phone, the elderly, disabled and pregnant first. Replayed on the 2024 Feni flood using only the data available at each hour, Agam reached Warning on 17 August and Danger for Feni Sadar at noon on 19 August (heavy rain in Tripura plus a spring tide), and for Parshuram at noon on 20 August — while every forecast stayed quiet. In a 30-year backtest it raised Danger on or before the onset of 20 of 35 documented area-floods, with a median of 0.6 Danger episodes per area per year. Agam is a working prototype: no community uses it yet, and a pilot is our next step.
 
 **Primary team language:** Bangla / English
 
@@ -61,7 +61,7 @@ Live hourly rain, ────────────────────�
 river, tide                                   tide at river mouth           │   + arrival time   Voice calls + SMS (retry → backup no.)
 Residents' reports ─────────────────────────► "water rising" reports       ┘        │           Volunteer door-knock lists
                                                                                      │           Loudspeaker script (mosque / CPP)
-                                              Claude (claude-opus-5-5) ◄─────────────┘           Most vulnerable first
+                                              Gemini (free) → Groq ◄──────────────┘           Most vulnerable first
                                               writes SMS / voice / loudspeaker / checklist from verified facts
                                               → 7 automatic safety checks → verified template if any check fails
 ```
@@ -98,7 +98,7 @@ Agam turns an area red and drafts the alert → the union officer gets an SMS ("
 
 ## 5. Data & AI provenance
 
-See `docs/DATA_PROVENANCE.md` (paste the tables). In summary: all data is open (Open-Meteo / Copernicus ERA5, GloFAS and sea level, OpenStreetMap). The demo households are synthetic. Real household lists are uploaded only by officers, only with each household's consent, and can be deleted at any time. The model is Anthropic `claude-opus-5-5`, which only writes text from verified facts and never decides the alert level.
+See `docs/DATA_PROVENANCE.md` (paste the tables). In summary: all data is open (Open-Meteo / Copernicus ERA5, GloFAS and sea level, OpenStreetMap). The demo households are synthetic. Real household lists are uploaded only by officers, only with each household's consent, and can be deleted at any time. The writer is Google Gemini on its free tier (Flash-Lite, then Flash), with Groq's free tier as backup and Claude as an optional paid upgrade; it only writes text from verified facts and never decides the alert level.
 
 ## 6. Tooling + IDE + memory/context files
 
