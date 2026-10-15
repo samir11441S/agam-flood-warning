@@ -56,6 +56,10 @@ The "0.6 per year" figure is an **upper bound on false alarms**, not a false-ala
 
 Full tables: [EVALUATION-results.md](EVALUATION-results.md).
 
+## 3b. Geospatial ML model
+
+A logistic regression over each area's upstream network, validated with year-blocked cross-validation: held-out AUC **0.91**; Watch on or before onset for **28 of 35** documented area-floods (rules: 26); rules or ML give early attention for **29 of 35**; on the unseen Jamuna 2024 flood ML reached Watch 66 h before the rules (rules were earlier on Feni 2024). At the Danger alarm rate the rules are clearly better, so ML only ever raises Watch. Full tables: [ML-EVAL.md](ML-EVAL.md).
+
 ## 4. Can we learn travel times from data? (No — and that is useful to know)
 
 `npm run travel-times` looked for the delay between upstream rain and river rises over 30 monsoons. Every river came out at "0 days": daily ERA5 + GloFAS cannot resolve travel times (the river cell responds to same-day regional rain). **Travel times therefore stay labelled "estimate" in the app** until they are checked against BWDB hourly water-level records — the first task of a pilot. ([travel-times-check.json](travel-times-check.json))

@@ -67,6 +67,7 @@ if (all) {
     "",
   ].join("\n");
   fs.writeFileSync(path.join(process.cwd(), "docs", "AI-EVAL.md"), md);
-  console.log("Wrote docs/AI-EVAL.md");
+  fs.writeFileSync(path.join(process.cwd(), "docs", "ai-eval-summary.json"), JSON.stringify({ date: new Date().toISOString().slice(0, 10), cases: rows.length, passed, medianMs: median, writers: Object.fromEntries(byWriter) }, null, 2) + "\n");
+  console.log("Wrote docs/AI-EVAL.md and docs/ai-eval-summary.json");
 }
 fs.rmSync(process.env.AGAM_DATA_DIR!, { recursive: true, force: true });

@@ -38,7 +38,8 @@ const SYLHET_DISTRICTS = new Set(["Sylhet", "Sunamganj", "Habiganj"]);
 const CHATTOGRAM_DISTRICTS = new Set(["Chattogram"]);
 
 export function buildFacts(area: Area, a: Assessment): AlertFacts {
-  const top = a.signals[0];
+  // The cause residents hear is always a measured fact (rain, river), never the ML model's score.
+  const top = a.signals.find((s) => s.kind !== "ml");
   const numbers = new Set<number>([999]);
   if (a.etaHours) a.etaHours.forEach((h) => numbers.add(Math.max(1, h)));
   let causeBn = `${area.riverBn} নদী অববাহিকায় ভারী বৃষ্টি হয়েছে।`;
@@ -182,7 +183,8 @@ const ACTION_WORDS: Record<number, string[]> = {
   2: ["গুছিয়ে", "প্রস্তুত", "উঁচু স্থান", "উঁচু জায়গা", "সরিয়ে"],
   3: ["আশ্রয়কেন্দ্র", "উঁচু স্থান", "উঁচু জায়গা"],
 };
-const FALSE_REASSURANCE = ["চিন্তার কিছু নেই", "ভয়ের কিছু নেই", "ভয় পাবেন না", "দরকার নেই", "প্রয়োজন নেই", "আশঙ্কা নেই", "ঝুঁকি নেই"];
+// Phrases that downplay the danger or call off the action. A calm "don't panic" is fine; "no need to move" is not.
+const FALSE_REASSURANCE = ["চিন্তার কিছু নেই", "ভয়ের কিছু নেই", "আশঙ্কা নেই", "ঝুঁকি নেই", "বিপদ নেই", "যাওয়ার দরকার নেই", "যাওয়ার প্রয়োজন নেই", "সরার দরকার নেই", "সরে যেতে হবে না"];
 
 function rightAction(c: AlertContent, f: AlertFacts): boolean {
   if (f.allClear) return true;
@@ -190,6 +192,21 @@ function rightAction(c: AlertContent, f: AlertFacts): boolean {
   const asks = (t: string) => words.some((w) => t.includes(w));
   const reassures = f.level >= 2 && [c.sms_bn, c.voice_bn, c.dialect_voice ?? ""].some((t) => FALSE_REASSURANCE.some((p) => t.includes(p)));
   return asks(c.sms_bn) && asks(c.voice_bn) && !reassures;
+}
+
+/** What to tell a model whose draft failed a check, so one repair attempt can fix exactly that. */
+export function repairHints(failed: Check[], f: AlertFacts, c: AlertContent): string[] {
+  const action = f.level === 3 ? "go now to the shelter (আশ্রয়কেন্দ্র) or high ground (উঁচু স্থান)" : f.level === 2 ? "get ready: pack documents, medicine and dry food (গুছিয়ে রাখুন), move livestock to high ground" : "keep watching the river (নজর রাখুন) and keep phones on";
+  const hints: Record<string, string> = {
+    "Alert level stated, with the right action": `Both sms_bn and voice_bn must contain the exact words "${f.levelBn}" and tell people to ${action}. Do not say there is nothing to worry about.`,
+    "Area named correctly": `Write the area name exactly as "${f.areaBn}" in both sms_bn and voice_bn.`,
+    "No invented numbers": `Use only these numbers: ${f.allowedNumbers.join(", ")}. Remove any other number.`,
+    "SMS fits 3 Bangla SMS parts (≤ 200 chars)": `sms_bn is ${c.sms_bn.length} characters; shorten it to at most 190 characters, keeping the level word, the area name, the main action and ৯৯৯.`,
+    "Emergency number 999 included": "Include ৯৯৯ in both sms_bn and voice_bn.",
+    "Action checklist present": "checklist_bn must be a list of 3 to 6 short actions.",
+    "Sender (local committee) named in voice call": `End voice_bn with the sentence "বার্তাটি পাঠিয়েছে ${f.senderBn}।"`,
+  };
+  return failed.map((k) => hints[k.name] ?? k.name);
 }
 
 export function validateAlert(c: AlertContent, f: AlertFacts): Check[] {

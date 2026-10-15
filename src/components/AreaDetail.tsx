@@ -10,6 +10,7 @@ const KIND: Record<SignalKind, { en: string; bn: string }> = {
   river: { en: "River flow (GloFAS)", bn: "নদীর প্রবাহ" },
   tide: { en: "High tide at the river mouth (drainage slowed)", bn: "জোয়ার" },
   community: { en: "Residents report rising water", bn: "এলাকাবাসীর রিপোর্ট" },
+  ml: { en: "Geospatial ML model (30 years of floods)", bn: "এমএল মডেল" },
 };
 
 const THRESHOLD_NOTE: Record<SignalKind, string> = {
@@ -19,6 +20,7 @@ const THRESHOLD_NOTE: Record<SignalKind, string> = {
   river: "≈2/5-year flood flow",
   tide: "top 5% of daily high tides (adds one level when it is also raining)",
   community: "3 reports = Warning",
+  ml: "the model raises Watch at this risk (never Warning or Danger)",
 };
 
 export function LevelBadge({ level, large }: { level: 0 | 1 | 2 | 3; large?: boolean }) {

@@ -49,7 +49,7 @@ export type Inputs = {
   missing?: string[];
 };
 
-export type SignalKind = "upstream_rain" | "local_rain" | "forecast_rain" | "river" | "tide" | "community";
+export type SignalKind = "upstream_rain" | "local_rain" | "forecast_rain" | "river" | "tide" | "community" | "ml";
 
 export type Signal = {
   kind: SignalKind;
@@ -58,7 +58,7 @@ export type Signal = {
   whereBn: string;
   value: number;
   threshold: number;
-  unit: "mm" | "m³/s" | "m" | "reports";
+  unit: "mm" | "m³/s" | "m" | "reports" | "× usual risk";
   window: string;
   etaHours?: [number, number];
 };

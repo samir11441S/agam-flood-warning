@@ -1,3 +1,4 @@
+import { mlAssess, mlWatchRelativeRisk } from "./ml";
 import type { Area, Assessment, Inputs, Level, RainThreshold, RiverThreshold, Signal, Station, TideThreshold } from "./types";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
@@ -46,8 +47,9 @@ export function assessArea(
   rainT: Record<string, RainThreshold>,
   riverT: Record<string, RiverThreshold>,
   tideT: Record<string, TideThreshold> = {},
+  opts: { ml?: boolean } = {},
 ): Assessment {
-  const now = assessNow(area, inputs, stations, rainT, riverT, tideT);
+  const now = withMl(area, inputs, rainT, riverT, assessNow(area, inputs, stations, rainT, riverT, tideT), opts.ml !== false);
   // Water keeps rising after the rain stops, so a Danger is held as a Warning for 72 h until an officer gives the all-clear.
   if (now.level < 2) {
     for (let k = 1; k <= HOLD_DAYS; k++) {
@@ -56,6 +58,22 @@ export function assessArea(
     }
   }
   return now;
+}
+
+/**
+ * Adds the geospatial ML model's view (src/lib/ml.ts) as one more piece of evidence. It can raise an area to
+ * Watch — "look closely" — but never to Warning or Danger: those stay with the transparent rules and an officer.
+ */
+function withMl(area: Area, inputs: Inputs, rainT: Record<string, RainThreshold>, riverT: Record<string, RiverThreshold>, a: Assessment, enabled: boolean): Assessment {
+  if (!enabled) return a;
+  const ml = mlAssess(area, inputs, rainT, riverT);
+  if (!ml || (!ml.watch && a.level === 0 && ml.percentile < 90)) return a;
+  const signal: Signal = {
+    kind: "ml", level: ml.watch ? 1 : 0, where: ml.drivers.length ? ml.drivers.map((d) => d.label).join(", ") : "upstream network", whereBn: "উজানের নেটওয়ার্ক",
+    value: ml.relativeRisk, threshold: mlWatchRelativeRisk(), unit: "× usual risk", window: `flood start within 72h · top ${Math.max(0.1, Math.round((100 - ml.percentile) * 10) / 10)}% of days`,
+  };
+  const signals = [...a.signals, signal].sort((x, y) => y.level - x.level || y.value / Math.max(1, y.threshold) - x.value / Math.max(1, x.threshold));
+  return { ...a, signals, level: (ml.watch && a.level < 1 ? 1 : a.level) as Level };
 }
 
 function assessNow(

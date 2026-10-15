@@ -10,6 +10,7 @@ Agam:
 
 1. **Watches rain upstream, across the border, every hour**: 15 rain points in Tripura, Meghalaya, Assam, West Bengal and the Chittagong hills, plus 24 flood-prone upazilas, 9 river points and 4 river mouths (tides).
 2. **Judges it against local history.** Each location's thresholds come from 30 years of rainfall, 40 years of river flow and 2.5 years of tides ("rain this heavy happens once every 2 / 5 years *here*"). Residents' "water rising" reports count as evidence too.
+   A **geospatial ML model** trained on 30 years of floods reads each area's whole upstream network as extra evidence (held-out AUC 0.91); it can raise Watch, never Warning or Danger.
 3. **Turns risk into action — safely.** An AI model (free Google Gemini by default) writes a plain-Bangla SMS, a voice-call script, a loudspeaker announcement and an English summary for officials. Seven automatic checks verify every draft; a signed-in officer (or two, for Danger) approves it — from the dashboard, by SMS reply or by Telegram. At night, unanswered alerts escalate to the next officer.
 4. **Reaches everyone, most vulnerable first.** Voice calls and SMS to every registered phone (retried, then a backup number), volunteer door-knock lists for homes without a phone, loudspeaker scripts for mosques and CPP volunteers, and "safe / need help" replies from **any phone**: reply to the SMS with `1` or `2`, press 1 or 2 during the voice call, or tap a Telegram button. Help requests go straight to the area's volunteers and onto the rescue list.
 
@@ -179,6 +180,7 @@ Or from this folder with the Vercel CLI: `vercel deploy --prod` (`vercel.json` t
 | Path | What it is |
 |---|---|
 | `src/lib/risk.ts` | The risk engine: upstream rain (24 h / 72 h / 5 days), local rain, forecast, river flow, tides and community reports → Normal / Watch / Warning / Danger |
+| `src/lib/ml.ts` | Geospatial ML flood-onset model (logistic regression over the upstream network); trained by `npm run train:ml` → `src/data/ml-model.json`, results in `docs/ML-EVAL.md` |
 | `src/lib/alerts.ts` | Alert facts, Bangla templates, loudspeaker script, volunteer SMS and the 7 safety checks |
 | `src/lib/ai-writer.ts` | AI writes the alert from verified facts — Gemini (free) → Groq (free) → Claude (optional); falls back to the template if any check fails |
 | `src/lib/alert-flow.ts` | Draft → approve (1 or 2 officers) → send on every channel → outbox + audit log |
@@ -213,6 +215,18 @@ npm run replays
 ```
 
 Rebuilds the flood replays.
+
+```bash
+npm run train:ml
+```
+
+Trains and validates the geospatial ML model (year-blocked cross-validation, ~15 s; uses the calibration cache) and writes `docs/ML-EVAL.md`.
+
+```bash
+npm run eval:ai -- --all
+```
+
+Live 72-case evaluation of the AI alert writer with your free key; writes `docs/AI-EVAL.md`.
 
 ```bash
 npm run backtest

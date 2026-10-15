@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-15",
+  "cases": 72,
+  "passed": 63,
+  "medianMs": 3024,
+  "writers": {
+    "Gemini · gemini-3.5-flash-lite": 63,
+    "template": 9
+  }
+}

@@ -35,6 +35,7 @@
 
 | Model | Provider | Where | Purpose |
 |---|---|---|---|
+| Agam geospatial flood-onset model (own) | Trained by the team (`npm run train:ml`) on ERA5 + GloFAS 1994–2023 and 35 documented area-floods | `src/lib/ml.ts`, `src/data/ml-model.json` | Logistic regression over the upstream network; estimates the chance a flood starts within 72 h. Raises Watch only. Validation in `docs/ML-EVAL.md`. |
 | `gemini-3.5-flash-lite`, then `gemini-3.8-flash` (default) | Google Gemini API — **free tier** | `src/lib/ai-writer.ts` | Writes the Bangla SMS, voice-call script, optional dialect version, checklist and English official summary from verified facts. Structured JSON output (response schema). Flash-Lite first (fast, larger free quota); Flash if a draft fails a check. |
 | `openai/gpt-oss-120b` (backup) | Groq API — **free tier** | `src/lib/ai-writer.ts` | Same task, used automatically when Gemini's free quota is used up. Strict JSON schema. |
 | `claude-opus-5-5` (optional) | Anthropic (Claude API) — paid | `src/lib/ai-writer.ts` | Same task, only if a key is set. |

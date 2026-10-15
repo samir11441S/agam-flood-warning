@@ -10,7 +10,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import crypto from "node:crypto";
-import { templateAlert, validateAlert, type AlertContent, type AlertFacts, type Check } from "./alerts";
+import { repairHints, templateAlert, validateAlert, type AlertContent, type AlertFacts, type Check } from "./alerts";
 import { attempts, load, update } from "./store";
 
 const AlertSchema = z.object({
@@ -64,16 +64,16 @@ type Provider = {
   name: string;
   models: () => string[];
   ready: () => boolean;
-  write: (model: string, user: string) => Promise<unknown>;
+  write: (model: string, user: string, timeoutMs: number) => Promise<unknown>;
 };
 
 const list = (v: string | undefined, fallback: string[]) => (v?.trim() ? v.split(",").map((s) => s.trim()).filter(Boolean) : fallback);
 const CALL_TIMEOUT_MS = 25_000;
 
-async function post(url: string, headers: Record<string, string>, body: unknown): Promise<Record<string, unknown>> {
+async function post(url: string, headers: Record<string, string>, body: unknown, timeoutMs = CALL_TIMEOUT_MS): Promise<Record<string, unknown>> {
   let res: Response;
   try {
-    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(CALL_TIMEOUT_MS) });
+    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
   } catch (e) {
     throw new WriterError("failed", (e as Error).name === "TimeoutError" ? "timed out" : (e as Error).message);
   }
@@ -143,13 +143,13 @@ const gemini: Provider = {
   // if a Flash-Lite draft fails a check or its quota runs out.
   models: () => list(process.env.GEMINI_MODELS, ["gemini-3.5-flash-lite", "gemini-3.8-flash"]),
   ready: () => Boolean(process.env.GEMINI_API_KEY),
-  async write(model, user) {
+  async write(model, user, timeoutMs) {
     const call = (schema: boolean) =>
       post(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, { "x-goog-api-key": process.env.GEMINI_API_KEY! }, {
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ role: "user", parts: [{ text: user }] }],
         generationConfig: { responseMimeType: "application/json", ...(schema ? { responseSchema: GEMINI_SCHEMA } : {}), temperature: 0.3, maxOutputTokens: 4096 },
-      });
+      }, timeoutMs);
     let json: Record<string, unknown>;
     try {
       json = await call(true);
@@ -172,14 +172,14 @@ const groq: Provider = {
   name: "Groq",
   models: () => list(process.env.GROQ_MODELS, ["openai/gpt-oss-120b"]),
   ready: () => Boolean(process.env.GROQ_API_KEY),
-  async write(model, user) {
+  async write(model, user, timeoutMs) {
     const json = await post("https://api.groq.com/openai/v1/chat/completions", { Authorization: `Bearer ${process.env.GROQ_API_KEY}` }, {
       model,
       temperature: 0.3,
       max_completion_tokens: 4096,
       messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: user }],
       response_format: { type: "json_schema", json_schema: { name: "flood_alert", strict: true, schema: STRICT_SCHEMA } },
-    });
+    }, timeoutMs);
     const choice = (json.choices as { message?: { content?: string; refusal?: string }; finish_reason?: string }[] | undefined)?.[0];
     if (choice?.message?.refusal) throw new WriterError("refused", "refused");
     if (!choice?.message?.content) throw new WriterError("failed", `no text (${choice?.finish_reason ?? "empty"})`);
@@ -192,9 +192,9 @@ const claude: Provider = {
   name: "Claude",
   models: () => [process.env.CLAUDE_MODEL?.trim() || "claude-opus-5-5"],
   ready: () => Boolean(process.env.ANTHROPIC_API_KEY),
-  async write(model, user) {
+  async write(model, user, timeoutMs) {
     try {
-      const response = await new Anthropic({ timeout: CALL_TIMEOUT_MS, maxRetries: 0 }).beta.messages.parse({
+      const response = await new Anthropic({ timeout: timeoutMs, maxRetries: 0 }).beta.messages.parse({
         model,
         max_tokens: 4000,
         betas: ["server-side-fallback-2026-07-01"],
@@ -236,6 +236,8 @@ const AI_CALLS_PER_HOUR = Number(process.env.AI_CALLS_PER_HOUR) || 40;
 /** At most this many model calls for one draft, so an officer never waits long. */
 const MAX_CALLS_PER_DRAFT = 4;
 const RETRY_PAUSE_MS = Number(process.env.AI_RETRY_PAUSE_MS) || 1500;
+/** An officer never waits longer than this for a draft; after it, the verified template is used. */
+const DRAFT_DEADLINE_MS = Number(process.env.AI_DRAFT_DEADLINE_MS) || 30_000;
 
 export async function composeAlert(facts: AlertFacts): Promise<ComposeResult> {
   const template = templateAlert(facts);
@@ -273,43 +275,63 @@ export async function composeAlert(facts: AlertFacts): Promise<ComposeResult> {
   if (attempts.blocked(BUDGET_KEY, AI_CALLS_PER_HOUR, 60)) return fallback(`AI writing paused: ${AI_CALLS_PER_HOUR} AI calls in the last hour — using the verified template.`);
 
   const problems: string[] = [];
+  const started = Date.now();
   let calls = 0;
-  for (const p of writers) {
-    for (const model of p.models()) {
-      if (calls >= MAX_CALLS_PER_DRAFT) break;
+  /** One model call, with a single quick retry if the provider is busy. Null when out of calls or time. */
+  const call = async (p: Provider, model: string, msg: string): Promise<unknown> => {
+    for (let attempt = 0; ; attempt++) {
+      const left = DRAFT_DEADLINE_MS - (Date.now() - started);
+      if (calls >= MAX_CALLS_PER_DRAFT || left < 4000) throw new WriterError("failed", "out of time");
       calls++;
       attempts.hit(BUDGET_KEY, 60);
+      try {
+        return await p.write(model, msg, Math.min(CALL_TIMEOUT_MS, left));
+      } catch (err) {
+        if (!(err instanceof WriterError && err.kind === "busy") || attempt > 0) throw err;
+        await new Promise((r) => setTimeout(r, RETRY_PAUSE_MS));
+      }
+    }
+  };
+  const save = (content: AlertContent, label: string) =>
+    update<Record<string, CachedDraft>>(CACHE_FILE, {}, (all) => {
+      const fresh = Object.entries(all).filter(([, v]) => Date.now() - Date.parse(v.at) < CACHE_DAYS * 86_400_000).slice(-499);
+      return { ...Object.fromEntries(fresh), [key]: { content, at: new Date().toISOString(), writer: label } };
+    });
+  const verify = (raw: unknown) => {
+    const parsed = AlertSchema.safeParse(raw);
+    if (!parsed.success) return null;
+    const content = parsed.data;
+    if (!facts.dialect) content.dialect_voice = null;
+    return { content, checks: validateAlert(content, facts) };
+  };
+  const failedText = (checks: Check[]) => checks.filter((c) => !c.ok).map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ""}`).join(", ");
+
+  for (const p of writers) {
+    for (const model of p.models()) {
       const label = `${p.name} · ${model}`;
       try {
-        let raw: unknown;
-        try {
-          raw = await p.write(model, user);
-        } catch (err) {
-          // A busy server gets one more try on the same model after a short pause.
-          if (!(err instanceof WriterError && err.kind === "busy") || calls >= MAX_CALLS_PER_DRAFT) throw err;
-          await new Promise((r) => setTimeout(r, RETRY_PAUSE_MS));
-          calls++;
-          attempts.hit(BUDGET_KEY, 60);
-          raw = await p.write(model, user);
+        const draft = verify(await call(p, model, user));
+        if (!draft) { problems.push(`${label}: wrong format`); continue; }
+        if (draft.checks.every((c) => c.ok)) {
+          save(draft.content, label);
+          return { content: draft.content, source: "ai", writer: label, checks: draft.checks, note: problems.length ? `Earlier tries: ${problems.join("; ")}.` : undefined };
         }
-        const parsed = AlertSchema.safeParse(raw);
-        if (!parsed.success) { problems.push(`${label}: wrong format`); continue; }
-        const content = parsed.data;
-        if (!facts.dialect) content.dialect_voice = null;
-        const checks = validateAlert(content, facts);
-        if (!checks.every((c) => c.ok)) {
-          problems.push(`${label}: failed ${checks.filter((c) => !c.ok).map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ""}`).join(", ")}`);
-          continue; // try the next (usually stronger) model
+        // One targeted repair on the same model: show it its draft and exactly which checks failed.
+        const failed = draft.checks.filter((c) => !c.ok);
+        problems.push(`${label}: failed ${failedText(draft.checks)}`);
+        const hints = repairHints(failed, facts, draft.content).map((h) => `- ${h}`).join("\n");
+        const repairMsg = `${user}\n\nYour previous draft:\n${JSON.stringify(draft.content)}\n\nIt failed these checks. Fix only these and keep everything else the same:\n${hints}`;
+        const fixed = verify(await call(p, model, repairMsg));
+        if (fixed?.checks.every((c) => c.ok)) {
+          save(fixed.content, label);
+          return { content: fixed.content, source: "ai", writer: label, checks: fixed.checks, note: `First draft failed ${failed.map((c) => c.name).join(", ")} — the model fixed it and the fix passed every check.` };
         }
-        update<Record<string, CachedDraft>>(CACHE_FILE, {}, (all) => {
-          const fresh = Object.entries(all).filter(([, v]) => Date.now() - Date.parse(v.at) < CACHE_DAYS * 86_400_000).slice(-499);
-          return { ...Object.fromEntries(fresh), [key]: { content, at: new Date().toISOString(), writer: label } };
-        });
-        return { content, source: "ai", writer: label, checks, note: problems.length ? `Earlier tries: ${problems.join("; ")}.` : undefined };
+        problems.push(`${label} (repair): ${fixed ? `failed ${failedText(fixed.checks)}` : "wrong format"}`);
       } catch (err) {
         if (!(err instanceof WriterError)) throw err;
         problems.push(`${label}: ${err.message}`);
         if (err.kind === "auth") break; // a bad key fails for every model of this provider
+        if (err.message === "out of time") return fallback(`AI drafts unavailable in time (${problems.join("; ")}) — sent the verified template instead.`);
       }
     }
   }

@@ -5,6 +5,8 @@ import geo from "@/data/geo.json";
 import DocsLive from "@/components/DocsLive";
 import { SYSTEM_PROMPT } from "@/lib/ai-writer";
 import backtest from "../../../docs/evaluation-summary.json";
+import aiEval from "../../../docs/ai-eval-summary.json";
+import mlModel from "@/data/ml-model.json";
 
 export const metadata: Metadata = {
   title: "Agam — docs: pitch, whitepaper and system status",
@@ -100,6 +102,8 @@ function Flow({ steps }: { steps: { title: string; body: string }[] }) {
     </ol>
   );
 }
+
+const ml = mlModel.metrics;
 
 export default function DocsPage() {
   const pct = Math.round((backtest.onTime / backtest.events) * 100);
@@ -206,9 +210,10 @@ export default function DocsPage() {
         </Section>
 
         <Section id="ai" title="AI design" kicker="Where AI is used — and where it is not">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <Card title="Rules decide the risk">The alert level comes from a transparent engine with thresholds derived from data. No LLM decides whether people evacuate, so every level can be explained and audited.</Card>
             <Card title="AI writes the words — on free APIs">Google Gemini (free tier: Flash-Lite, then Flash) writes the SMS, a 60–100 word voice script, an optional dialect version, a checklist and an English summary in one structured-JSON call. If Gemini is rate-limited, Groq&apos;s free tier (gpt-oss-120b) takes over; Claude is an optional paid upgrade. Identical facts reuse the earlier verified draft, and calls are capped per hour.</Card>
+            <Card title="Geospatial ML spots risky days">A logistic-regression model trained on 30 years of rain and river data reads each area&apos;s whole upstream network and estimates the chance a flood starts within 72 hours (held-out AUC {ml.aucHeldOut}). It can raise an area to Watch, never Warning or Danger — and it caught {ml.floodsCaughtOnlyByMl.length} past floods the rules missed.</Card>
             <Card title="Code verifies everything">Every draft passes 7 automatic checks or the verified template is used. The AI may only use numbers from an allow-list built from the facts. Agam works fully without an API key.</Card>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -265,7 +270,22 @@ export default function DocsPage() {
             Misses come from pre-monsoon flash floods over Meghalaya (ERA5&apos;s ~25 km grid under-represents orographic rain), a slow basin-wide 2007 Brahmaputra flood, and very local storms. Fixes: satellite rain (GPM IMERG),
             IMD/BMD gauges, more upstream points. Full method and tables: <a className="underline" href={`${REPO}/blob/main/docs/EVALUATION.md`}>EVALUATION.md</a>.
           </p>
-          <p className="text-sm"><b>Next:</b> a 72-case run of the alert writer (24 areas × 3 levels) and resident comprehension tests with the <Link className="underline" href="/field-test">/field-test</Link> page (target ≥ 80% understand what, when, what to do and who sent it).</p>
+          <h3 className="pt-2 font-semibold text-stone-900">4. Geospatial ML model (out of sample: trained on some years, scored on others)</h3>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Stat value={ml.aucHeldOut} label="held-out ROC AUC over 262,800 area-days" />
+            <Stat value={`${ml.mlWatchOnOrBeforeOnset}/${ml.documentedAreaFloods}`} label={`documented floods flagged Watch in time (median ${ml.medianMlLeadDays} days ahead)`} />
+            <Stat value={`${ml.rulesOrMlAttention}/${ml.documentedAreaFloods}`} label={`floods with early attention from rules or ML (rules alone ${ml.rulesWatchOnOrBeforeOnset})`} />
+            <Stat value="66 h" label="earlier than the rules on the unseen Jamuna 2024 flood" />
+          </div>
+          <p className="text-sm">At the same alarm rate as the rules&apos; Watch level, ML flags {ml.mlDetectedAtRulesWatchAlarmRate} documented floods versus {ml.rulesWatchOnOrBeforeOnset}; at the Danger level the rules are far better ({ml.rulesDangerOnOrBeforeOnset} vs {ml.mlDetectedAtRulesDangerAlarmRate}) — which is why ML only ever raises Watch. Method, weights and every flood: <a className="underline" href={`${REPO}/blob/main/docs/ML-EVAL.md`}>ML-EVAL.md</a>.</p>
+          <h3 className="pt-2 font-semibold text-stone-900">5. AI alert writer, live ({aiEval.cases} real calls to the free Gemini API)</h3>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Stat value={`${aiEval.passed}/${aiEval.cases}`} label="AI drafts passing all 7 safety checks first time" />
+            <Stat value={`${Math.round(aiEval.medianMs / 100) / 10} s`} label="median time to write a draft" />
+            <Stat value="0" label="unchecked drafts that could reach residents (the rest used the verified template)" />
+            <Stat value="$0" label="AI cost — Gemini free tier, Groq free tier as backup" />
+          </div>
+          <p className="text-sm"><b>Next:</b> resident comprehension tests with the <Link className="underline" href="/field-test">/field-test</Link> page (target ≥ 80% understand what, when, what to do and who sent it). Full alert-writer results: <a className="underline" href={`${REPO}/blob/main/docs/AI-EVAL.md`}>AI-EVAL.md</a>.</p>
         </Section>
 
         <Section id="responsible" title="Responsible AI, safety & privacy" kicker="Ethical AI compliance">
@@ -360,8 +380,8 @@ export default function DocsPage() {
           <Table
             head={["Criterion", "Evidence in Agam"]}
             rows={[
-              ["Innovation (20)", "Watches rain across the border instead of forecasting rivers; per-location history instead of national thresholds; AI for last-mile language, rules for decisions."],
-              ["Technical execution (20)", <>Explainable engine, bias correction between datasets, free-tier AI (Gemini → Groq) with structured outputs and 7 checks, MCP server, worker with escalation and retries — <a className="underline" href={REPO}>open source</a>.</>],
+              ["Innovation (20)", "Watches rain across the border instead of forecasting rivers; per-location history instead of national thresholds; a geospatial ML model over the upstream network next to transparent rules; AI for last-mile language, rules for decisions."],
+              ["Technical execution (20)", <>Explainable engine plus a validated geospatial ML model (AUC {ml.aucHeldOut}), bias correction between datasets, free-tier AI (Gemini → Groq) with structured outputs and 7 checks, MCP server, worker with escalation and retries — <a className="underline" href={REPO}>open source</a>.</>],
               ["Business model + global readiness (20)", <>Four paying customer types, unit costs, global open data and a config-file path to new countries — <a className="underline" href="#business">Business</a>.</>],
               ["Real-world impact + ethical AI (20)", <>Feni 2024 replay, {backtest.onTime}/{backtest.events} backtest, human approval, consent-based data, published misses — <a className="underline" href="#responsible">Responsible AI</a>.</>],
               ["Scalability + NRB collaboration (10)", <>Docker pilot hosting, modular channels, MCP; NRB collaborator being recruited — <a className="underline" href="#scale">Scale</a>.</>],

@@ -279,6 +279,13 @@ r = await composeAlert(facts2);
 check("a draft that fails a safety check is replaced by the next model's", r.writer === `Gemini · ${FLASH}` && /failed Alert level stated/.test(r.note ?? ""));
 
 resetAi();
+let liteCalls = 0;
+aiMock.gemini = { [LITE]: () => (++liteCalls === 1 ? geminiOk({ ...good2, checklist_bn: ["একটি কাজ"] })() : geminiOk(good2)()) };
+r = await composeAlert(facts2);
+const repairReq = JSON.parse(net.filter((n) => n.url.includes("generativelanguage")).at(-1)!.body ?? "{}");
+check("a draft failing a check is repaired by the same model (told exactly what to fix)", r.writer === `Gemini · ${LITE}` && liteCalls === 2 && /fixed it/.test(r.note ?? "") && /checklist_bn must be a list of 3 to 6/.test(repairReq.contents?.[0]?.parts?.[0]?.text ?? ""));
+
+resetAi();
 let busyOnce = true;
 aiMock.gemini = { [LITE]: () => (busyOnce ? ((busyOnce = false), new Response("{}", { status: 503 })) : geminiOk(good2)()) };
 r = await composeAlert(facts2);
