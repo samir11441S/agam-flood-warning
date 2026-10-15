@@ -40,6 +40,7 @@ areaLists.setContacts("parshuram", [{ name: "স্বেচ্ছাসেব�
 const a = assessArea(areaById.parshuram, replayInputs(feni as Replay, "2024-08-20T12"), stations, rainThresholds, riverThresholds, tideThresholds);
 const { alert } = await createDraft("parshuram", a, "live", "test");
 const outcome = await approve(alert.id, { id: DEMO_OFFICER.id, name: DEMO_OFFICER.name, role: DEMO_OFFICER.role }, "dashboard");
+if (outcome.status === "sent") await outcome.sending; // approval returns at once; sending finishes in the background
 const sent = alerts.get(alert.id)!;
 check("alert sent", outcome.status === "sent" && sent.status === "sent");
 const smsOut = sent.outbox?.find((o) => o.channel === "SMS (Bangla)");

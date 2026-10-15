@@ -158,7 +158,7 @@ function Outbox({ entries }: { entries: OutboxEntry[] }) {
           <summary className="flex cursor-pointer items-center gap-2">
             <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${MODE_STYLE[e.mode]}`}>{e.mode}</span>
             <span className="font-medium">{e.channel}</span>
-            <span className="ml-auto text-stone-500">{e.mode === "simulated" ? `${e.recipients} (demo, not sent)` : e.mode === "test" ? `${e.recipients} ready (test mode, not sent)` : `${e.sent}/${e.recipients} sent${e.failed ? `, ${e.failed} failed` : ""}`}</span>
+            <span className="ml-auto text-stone-500">{e.mode === "simulated" ? `${e.recipients} (demo, not sent)` : e.mode === "test" ? `${e.recipients} ready (test mode, not sent)` : `${e.sent}/${e.recipients} sent${e.failed ? `, ${e.failed} failed` : ""}${e.inProgress ? " · sending…" : ""}`}</span>
           </summary>
           <p lang="bn" className="mt-1 whitespace-pre-line text-stone-700">{e.sample}</p>
           {e.note && <p className="mt-1 text-stone-500">{e.note}</p>}

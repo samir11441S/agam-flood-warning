@@ -45,6 +45,8 @@ export type Inputs = {
   tide?: Record<string, number>;
   /** Number of distinct "water rising" reports from residents / volunteers in the last 6 hours (live only). */
   reports?: Record<string, number>;
+  /** Live feeds that could not be loaded this time (e.g. "river", "tide"); those signals are missing from the levels. */
+  missing?: string[];
 };
 
 export type SignalKind = "upstream_rain" | "local_rain" | "forecast_rain" | "river" | "tide" | "community";
@@ -67,4 +69,8 @@ export type Assessment = {
   signals: Signal[];
   etaHours: [number, number] | null;
   heldFromDaysAgo?: number;
+  /** While held: the level the data alone gives now (what applies once an officer sends the all-clear). */
+  unheldLevel?: Level;
+  /** The hold was lifted by an all-clear an officer sent. */
+  clearedAt?: string;
 };

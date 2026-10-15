@@ -14,6 +14,13 @@ export default function OfficerBar({ session, onChange, askLogin, setAskLogin }:
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [log, setLog] = useState<AuditEntry[] | null>(null);
+  const [link, setLink] = useState<{ code: string; minutes: number; bot: string; link: string } | { error: string } | null>(null);
+
+  async function linkTelegram() {
+    const res = await fetch("/api/session/telegram", { method: "POST" });
+    const j = await res.json();
+    setLink(res.ok ? j : { error: j.error ?? "Could not create a link code." });
+  }
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +53,7 @@ export default function OfficerBar({ session, onChange, askLogin, setAskLogin }:
       {officer ? (
         <>
           <span className="text-stone-600">👤 {officer.name}</span>
+          {!session?.demoMode && <button onClick={linkTelegram} className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100" title="Approve alerts from your phone with one tap">Link Telegram</button>}
           <button onClick={openLog} className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100">Activity log</button>
           <button onClick={logout} className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100">Sign out</button>
         </>
@@ -68,6 +76,25 @@ export default function OfficerBar({ session, onChange, askLogin, setAskLogin }:
             {error && <p className="text-sm text-red-700">{error}</p>}
             <button className="w-full rounded-lg bg-stone-900 py-2 font-semibold text-white">Sign in</button>
           </form>
+        </div>
+      )}
+
+      {link && (
+        <div className="fixed inset-0 z-[2000] grid place-items-center bg-black/40 p-4" onClick={() => setLink(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm space-y-3 rounded-xl bg-white p-5 shadow-xl">
+            <h2 className="text-lg font-bold">Link Telegram for approvals</h2>
+            {"error" in link ? (
+              <p className="text-sm text-red-700">{link.error}</p>
+            ) : (
+              <>
+                <p className="text-sm text-stone-600">Open the link on your own phone (a private chat — groups are refused), or send this to <b>@{link.bot}</b>:</p>
+                <p className="rounded-lg bg-stone-100 p-3 text-center font-mono text-xl tracking-widest">/officer {link.code}</p>
+                <a href={link.link} target="_blank" rel="noreferrer" className="block rounded-lg bg-sky-600 py-2 text-center font-semibold text-white hover:bg-sky-500">Open in Telegram</a>
+                <p className="text-xs text-stone-500">The code works once and expires in {link.minutes} minutes. Your PIN is never sent to Telegram.</p>
+              </>
+            )}
+            <button onClick={() => setLink(null)} className="w-full rounded-lg border border-stone-300 py-2 text-sm hover:bg-stone-100">Close</button>
+          </div>
         </div>
       )}
 

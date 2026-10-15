@@ -3,6 +3,7 @@ import { areaById } from "@/lib/data";
 import { parseHouseholdCsv } from "@/lib/households";
 import { audit } from "@/lib/officers";
 import { requireOfficer } from "@/lib/session";
+import { jsonBody, str } from "@/lib/http";
 import { areaLists, type Contact } from "@/lib/store";
 
 export async function GET(request: NextRequest) {
@@ -20,8 +21,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   const officer = await requireOfficer();
   if (officer instanceof Response) return officer;
-  const { areaId, kind, csv } = (await request.json()) as { areaId?: string; kind?: string; csv?: string };
-  if (!areaId || !areaById[areaId] || !csv) return Response.json({ error: "areaId and csv are required" }, { status: 400 });
+  const body = await jsonBody<{ areaId: string; kind: string; csv: string }>(request);
+  const areaId = str(body?.areaId, 40);
+  const kind = str(body?.kind, 20);
+  const csv = typeof body?.csv === "string" ? body.csv : undefined;
+  if (!areaId || !Object.hasOwn(areaById, areaId) || !csv) return Response.json({ error: "areaId and csv are required" }, { status: 400 });
   if (kind === "households") {
     const { households, errors } = parseHouseholdCsv(areaId, csv);
     if (!households.length) return Response.json({ error: errors[0] ?? "No rows found", errors }, { status: 400 });

@@ -52,7 +52,7 @@ export function assessArea(
   if (now.level < 2) {
     for (let k = 1; k <= HOLD_DAYS; k++) {
       const past = assessNow(area, shiftBack(inputs, k), stations, rainT, riverT, tideT);
-      if (past.level === 3) return { ...now, level: 2, heldFromDaysAgo: k };
+      if (past.level === 3) return { ...now, level: 2, heldFromDaysAgo: k, unheldLevel: now.level };
     }
   }
   return now;

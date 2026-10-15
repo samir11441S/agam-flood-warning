@@ -4,6 +4,7 @@ import sylhet2024 from "@/data/replays/sylhet-2024.json";
 import north2024 from "@/data/replays/north-2024.json";
 import chattogram2026 from "@/data/replays/chattogram-2026.json";
 import { areas, rainThresholds, replaySteps, replayInputs, riverThresholds, stations, tideThresholds, type Replay } from "./data";
+import { respectAllClear } from "./alert-flow";
 import { communityReports } from "./community";
 import { liveInputs } from "./live";
 import { assessArea } from "./risk";
@@ -35,6 +36,8 @@ export async function scenarioInputs(s: Scenario): Promise<Inputs> {
   return { ...inputs, reports: communityReports() };
 }
 
-export function assessAll(inputs: Inputs): Assessment[] {
-  return areas.map((a) => assessArea(a, inputs, stations, rainThresholds, riverThresholds, tideThresholds));
+/** Every area's level. Live levels also respect all-clears officers have sent (they end the post-Danger hold). */
+export function assessAll(inputs: Inputs, scenario: Scenario = { mode: "live" }): Assessment[] {
+  const all = areas.map((a) => assessArea(a, inputs, stations, rainThresholds, riverThresholds, tideThresholds));
+  return scenario.mode === "live" ? all.map(respectAllClear) : all;
 }

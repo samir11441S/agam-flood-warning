@@ -37,13 +37,13 @@
 |---|---|---|---|
 | `claude-opus-5-5` | Anthropic (Claude API) | `src/lib/claude-alert.ts` | Writes the Bangla SMS, voice-call script, optional dialect version, checklist and English official summary from verified facts. Structured JSON output. Server-side refusal fallback (`fallbacks: "default"`) enabled. |
 
-The **risk decision is not made by an LLM.** Alert levels come from a transparent, rule-based engine (`src/lib/risk.ts`) using thresholds derived from data. Claude only words the message. Its output must pass seven automatic checks (correct level word, correct area, no invented numbers, SMS length, 999 included, checklist present, sender named), or the verified template is sent instead. A signed-in officer approves every alert before it goes out (two officers for Danger if the committee turns that on).
+The **risk decision is not made by an LLM.** Alert levels come from a transparent, rule-based engine (`src/lib/risk.ts`) using thresholds derived from data. Claude only words the message. Its output must pass seven automatic checks (correct level word with the matching action, correct area, no invented numbers — also in the English summary — SMS length, 999 included, checklist present, sender named), or the verified template is sent instead. A signed-in officer approves every alert before it goes out (two officers for Danger if the committee turns that on).
 
 ## Responsible-AI safeguards
 
 1. **Numbers are guarded:** every number in an AI draft must come from the verified facts; otherwise the draft is rejected.
 2. **Human in the loop:** nothing is sent without officer approval. The one exception is opt-in and Danger-only: if no officer answers within 45 minutes (after escalating to every officer), the verified template — never AI text — is sent automatically. Committees can switch this off.
-3. **Accountability:** officers sign in with hashed PINs; sign-ins, drafts, approvals, rejections, uploads and sends are in an audit log; repeated wrong PINs lock sign-in for 10 minutes. Demo mode can never send to a real phone.
-4. **Fail-safe:** if the AI is unavailable, refuses, or fails a check, the verified template is used, so alerts never depend on AI uptime.
+3. **Accountability:** officers sign in with hashed PINs; sign-ins, drafts, approvals, rejections, uploads and sends are in an audit log; wrong PINs are limited per device and in total (sign-in pauses after 20 wrong PINs in an hour); wrong SMS approval codes and Telegram link codes are limited too; Telegram is linked with one-time codes, never PINs. Demo mode can never send to a real phone.
+4. **Fail-safe:** if the AI is unavailable, refuses, or fails a check, the verified template is used, so alerts never depend on AI uptime. If live rain data stops for 30 minutes, every officer is told to rely on official bulletins until it returns.
 5. **Dialect output is flagged experimental** and must be reviewed by a native speaker.
 6. **Not an official warning:** the UI and docs state this clearly. Officers record the official FFWC/BMD status for each area, and messages are sent in the local committee's name. Agam supports official BMD/FFWC/DDM warnings and does not replace them.

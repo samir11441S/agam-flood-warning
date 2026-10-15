@@ -3,7 +3,8 @@ import type { DispatchPlan } from "./households";
 import type { Reply } from "./store";
 export type { Reply };
 
-export type OutboxEntry = { channel: string; mode: "live" | "test" | "simulated"; recipients: number; sent: number; failed: number; sample: string; note?: string };
+/** One channel of a sent alert. inProgress: messages are still going out (sent/failed keep counting up). */
+export type OutboxEntry = { channel: string; mode: "live" | "test" | "simulated"; recipients: number; sent: number; failed: number; sample: string; note?: string; inProgress?: boolean };
 export type AlertStatus = {
   status: "pending" | "sent" | "rejected" | "superseded";
   code: string;
@@ -21,11 +22,14 @@ export type RiskResponse = {
   asOf: string;
   replay: { id: string; title: string; titleBn: string; focus: string[]; dates: string[] } | null;
   assessments: Assessment[];
+  /** Live feeds that failed this time (their signals are missing from the levels). */
+  missing?: string[];
 };
 
 export type AlertResponse = {
   alertId: string;
   code: string;
+  kind: "warning" | "all-clear";
   approvalsNeeded: number;
   facts: AlertFacts;
   result: { content: AlertContent; source: "claude" | "template"; checks: Check[]; note?: string };

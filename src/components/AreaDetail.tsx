@@ -30,11 +30,14 @@ export function LevelBadge({ level, large }: { level: 0 | 1 | 2 | 3; large?: boo
   );
 }
 
-export default function AreaDetail({ area, assessment, onAlert, alertLoading }: {
+export default function AreaDetail({ area, assessment, onAlert, alertLoading, allClear, onAllClear }: {
   area: Area;
   assessment: Assessment;
   onAlert: () => void;
   alertLoading: boolean;
+  /** Set when a warning went out and the danger has passed: the officer can withdraw it. */
+  allClear?: { lastLevel?: string } | null;
+  onAllClear?: () => void;
 }) {
   return (
     <section className="space-y-4">
@@ -56,6 +59,12 @@ export default function AreaDetail({ area, assessment, onAlert, alertLoading }: 
       {assessment.heldFromDaysAgo && (
         <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">
           Danger was raised {assessment.heldFromDaysAgo} day{assessment.heldFromDaysAgo > 1 ? "s" : ""} ago. Rain has eased, but flood water stays high — held at Warning until an officer gives the all-clear.
+        </div>
+      )}
+
+      {assessment.clearedAt && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          All-clear sent {new Date(assessment.clearedAt).toLocaleString()} — the post-Danger hold has ended.
         </div>
       )}
 
@@ -88,6 +97,14 @@ export default function AreaDetail({ area, assessment, onAlert, alertLoading }: 
         className="w-full rounded-lg bg-stone-900 px-4 py-3 font-semibold text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-300">
         {alertLoading ? "Writing alert…" : assessment.level === 0 ? "No alert needed" : <>Draft Bangla alert <span lang="bn">· সতর্কবার্তা তৈরি করুন</span></>}
       </button>
+
+      {allClear && onAllClear && (
+        <button onClick={onAllClear} disabled={alertLoading}
+          className="w-full rounded-lg border-2 border-emerald-600 bg-emerald-50 px-4 py-2.5 font-semibold text-emerald-900 transition hover:bg-emerald-100 disabled:opacity-60">
+          Draft all-clear <span lang="bn">· সতর্কতা প্রত্যাহার</span>
+          <span className="block text-xs font-normal">withdraws the {allClear.lastLevel ?? "last"} alert sent for {area.name} — residents can return, with safety advice</span>
+        </button>
+      )}
     </section>
   );
 }

@@ -64,9 +64,9 @@ Full tables: [EVALUATION-results.md](EVALUATION-results.md).
 
 Every AI-written alert is checked automatically (`validateAlert` in `src/lib/alerts.ts`):
 
-1. The alert level word is present in the SMS and the voice script.
+1. The alert level word is present in the SMS and the voice script, with the action that matches it (Danger: go to the shelter or high ground; Warning: get ready; Watch: keep watching) and no false reassurance ("nothing to worry about").
 2. The area name is present in both.
-3. No numbers appear that are not in the verified facts.
+3. No numbers appear that are not in the verified facts — in the Bangla texts and in the English summary for officials.
 4. The SMS is at most 200 characters (3 Bangla SMS segments).
 5. 999 is included for Warning and Danger.
 6. The checklist has at least 3 actions.

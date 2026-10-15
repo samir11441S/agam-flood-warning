@@ -88,16 +88,16 @@ The ▶ Play button uses the browser's built-in Bangla voice. **Microsoft Edge**
 ### 1. Officers, PINs and the two-person rule
 
 ```bash
-npm run officers -- add "Rahim Uddin" 4821 01711000000
+npm run officers -- add "Rahim Uddin" 482193 01711000000
 ```
 
-Adds an officer (name, 4–8 digit PIN, mobile for SMS approvals). The first officer becomes admin and **demo mode switches off**: real sending becomes possible and the demo PIN stops working. Every sign-in, draft, approval, upload and send is written to the **Activity log**.
+Adds an officer (name, 6–8 digit PIN — each officer's must be different — and a mobile for SMS approvals). The first officer becomes admin and **demo mode switches off**: real sending becomes possible and the demo PIN stops working. Every sign-in, draft, approval, upload and send is written to the **Activity log**.
 
 ```bash
 npm run officers -- set twoPersonDanger true
 ```
 
-Danger alerts then need two different officers. Other settings: `escalateAfterMin` (default 15), `autoSendDangerAfterMin` (default 45, or `off`), `autoDetect` (default true). `npm run officers` lists everything. To approve from Telegram, an officer sends `/officer <PIN>` to the bot once.
+Danger alerts then need two different officers. Other settings: `escalateAfterMin` (default 15), `autoSendDangerAfterMin` (default 45, or `off`), `autoDetect` (default true). `npm run officers` lists everything. To approve from Telegram, an officer signs in on the dashboard and presses **Link Telegram**: a one-time code (valid 10 minutes) opens the bot and links their private chat. PINs are never sent to Telegram, and approval buttons only work for the linked officer.
 
 ### 2. The background worker (keep it running)
 
@@ -106,8 +106,9 @@ npm run worker
 ```
 
 - Every 15 min it checks live risk and **drafts alerts by itself** at Warning / Danger.
-- It asks officer #1 to approve (SMS "reply 1 4821" + Telegram buttons), **escalates to the next officer** every 15 min, and, for Danger only, sends the verified template automatically after 45 min if nobody answers.
+- It asks officer #1 to approve (SMS "reply 1 305127" — a 6-digit code for that alert — and Telegram buttons), **escalates to the next officer** every 15 min, and, for Danger only, sends the verified template automatically after 45 min if nobody answers.
 - It retries unanswered voice calls after 10 min, then calls the backup number, then sends the home to a volunteer.
+- If live rain data stops arriving for 30 min, it tells every officer (SMS / Telegram) that Agam cannot see the rain and to use the official FFWC/BMD bulletin, and again when data is back.
 - It runs the Telegram bot.
 
 Rehearse without a real flood: `npm run worker -- --test-alert parshuram`.
@@ -116,7 +117,7 @@ Rehearse without a real flood: `npm run worker -- --test-alert parshuram`.
 
 Set `INBOUND_SECRET` in `.env.local`, then give your provider these URLs:
 
-- **Incoming SMS** (officer approvals "1 4821" / "2 4821", residents' answers "1" = safe / "2" = need help, "PANI <area>" reports): `https://<your-site>/api/sms/inbound?secret=<INBOUND_SECRET>&from={sender}&text={message}`
+- **Incoming SMS** (officer approvals "1 305127" / "2 305127", residents' answers "1" = safe / "2" = need help, "PANI <area>" reports): `https://<your-site>/api/sms/inbound?secret=<INBOUND_SECRET>&from={sender}&text={message}`
 - **Call status and keypad** (retries; the call ends with "press 1 if you are safe, 2 if you need help"): `https://<your-site>/api/voice/status?secret=<INBOUND_SECRET>&to={number}&status={answered|no-answer}&digits={key}`
 
 A resident's reply is matched to their household on the uploaded list (or its backup number) and the latest alert sent to their area in the last 72 h. "Need help" is texted at once to every volunteer on the area's contact list, with the household's name, village and number. Check it with `npm run test:replies`.
@@ -126,6 +127,7 @@ A resident's reply is matched to their household on the uploaded list (or its ba
 - On each area, officers record today's **official FFWC / BMD status**. Agam warns when its advisory level is higher, and every message is sent in the local committee's name.
 - **Rising-water reports** come from Telegram (🌊), SMS (`PANI <area>`) or are logged by officers. Reports from 3 different people in 6 h raise the level to Warning.
 - **`/field-test`** is a phone page to test whether residents understand the alert (see [docs/FIELD-TEST.md](docs/FIELD-TEST.md)).
+- **All-clear (সতর্কতা প্রত্যাহার):** once the danger has passed — or while an area is held at Warning after a Danger — the area shows **Draft all-clear**. It always uses the verified template: the danger is over, check the house before returning, stay out of flowing water. Officers approve it like any alert; it reaches the same households, and it ends the 72-hour hold.
 
 ### 5. Hosting (keeps data, runs the worker)
 
@@ -191,6 +193,12 @@ Or from this folder with the Vercel CLI: `vercel deploy --prod` (`vercel.json` t
 | `docs/` | Submission, pitch, presentation, evaluation, data provenance, prompts, business, outreach, field test |
 
 ### Useful commands
+
+```bash
+npm test
+```
+
+Runs both end-to-end test suites (temporary data, fake network — nothing is sent): residents' SMS / keypad replies, and the safety suite — several processes writing at once, PIN / code / Telegram-link guessing, double approvals, wrong-instruction drafts, sending 400 homes in parallel most-vulnerable-first, call-retry races, Danger auto-send, and the all-clear.
 
 ```bash
 npm run calibrate

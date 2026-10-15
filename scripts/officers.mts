@@ -1,6 +1,6 @@
 // Manage officer accounts and settings.
 //   npm run officers -- list
-//   npm run officers -- add "Rahim Uddin" 4821 01711000000      (name, PIN, optional mobile for SMS approvals)
+//   npm run officers -- add "Rahim Uddin" 482193 01711000000    (name, 6–8 digit PIN, optional mobile for SMS approvals)
 //   npm run officers -- remove "Rahim Uddin"
 //   npm run officers -- settings                                 (show)
 //   npm run officers -- set twoPersonDanger true | escalateAfterMin 15 | autoSendDangerAfterMin 45 (or off) | autoDetect true
@@ -21,7 +21,7 @@ try {
     const [name, pin, phone] = args;
     if (!name || !pin) throw new Error('Usage: add "Name" PIN [mobile]');
     const o = officers.add({ name, pin, phone });
-    console.log(`Added ${o.name} as ${o.role}.${o.phone ? "" : " Add a mobile number to receive escalations by SMS."}`);
+    console.log(`Added ${o.name} as ${o.role}.${o.phone ? "" : " Add a mobile number to receive escalations by SMS."} To approve from Telegram, sign in on the dashboard and press "Link Telegram".`);
     show();
   } else if (cmd === "remove") {
     officers.remove(args[0]);

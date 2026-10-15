@@ -63,7 +63,7 @@ Citizens never pay. Revenue comes from: (1) NGOs and donors running anticipatory
 The message comes from their own union disaster committee, in their own dialect, with a familiar voice. Volunteers (CPP/BDRCS-style) knock on doors where there is no phone. The pilot will measure comprehension with residents.
 
 **"What if the officer is asleep at 2 a.m.?"**
-Agam texts officer 1 ("reply 1 4821 to send"). After 15 minutes it asks officer 2, then officer 3. For Danger only, if nobody answers in 45 minutes, the verified template goes out automatically — the committee can switch this off.
+Agam texts officer 1 ("reply 1 305127 to send"). After 15 minutes it asks officer 2, then officer 3. For Danger only, if nobody answers in 45 minutes, the verified template goes out automatically — the committee can switch this off.
 
 **"What did you build vs. use?"**
 Built: the risk engine (rain, river, tide, residents' reports), local calibration from 30–40 years of data, the bias correction between data sources, honest hourly replays, the alert pipeline with guardrails, officer sign-in, escalation and SMS approval, multi-channel delivery with retries, the field-test page, the MCP server and the backtest. Used: open data (ERA5, GloFAS, Open-Meteo), Claude for language, OpenStreetMap.

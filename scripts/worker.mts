@@ -7,18 +7,18 @@
 // to rehearse escalation without waiting for a real flood.
 import fs from "node:fs";
 import path from "node:path";
-import { createDraft } from "../src/lib/alert-flow";
+import { createDraft, respectAllClear } from "../src/lib/alert-flow";
 import { volunteerSms } from "../src/lib/alerts";
 import { handleUpdate, type Update } from "../src/lib/bot";
 import { sendSms, sendVoice, smsMode } from "../src/lib/channels";
 import { communityReports } from "../src/lib/community";
 import { areaById, areas, rainThresholds, replayInputs, riverThresholds, stations, tideThresholds, type Replay } from "../src/lib/data";
 import { deliveries } from "../src/lib/deliveries";
-import { escalate } from "../src/lib/escalation";
+import { escalate, messageAllOfficers } from "../src/lib/escalation";
 import { fetchLiveInputs } from "../src/lib/live-fetch";
 import { audit, officers, settings } from "../src/lib/officers";
 import { assessArea } from "../src/lib/risk";
-import { alerts, areaLists } from "../src/lib/store";
+import { alerts, areaLists, feedHealth } from "../src/lib/store";
 import { botUsername, telegramToken, tg } from "../src/lib/telegram";
 import { householdVoice } from "../src/lib/resident-replies";
 
@@ -27,14 +27,48 @@ const DETECT_EVERY_MIN = Number(process.env.WORKER_DETECT_MIN ?? 15);
 const REPEAT_ALERT_HOURS = 12;
 const log = (...a: unknown[]) => console.log(new Date().toLocaleTimeString(), ...a);
 
+/** Minutes without live rain data before every officer is told that Agam cannot see the rain. */
+const OUTAGE_ALERT_MIN = process.env.OUTAGE_ALERT_MIN?.trim() ? Number(process.env.OUTAGE_ALERT_MIN) : 30;
+
+async function feedFailed(error: string) {
+  const now = new Date().toISOString();
+  const h = feedHealth.set((x) => ({ ...x, failingSince: x.failingSince ?? now, lastError: error }));
+  const minutes = (Date.now() - Date.parse(h.failingSince!)) / 60_000;
+  log(`live data unavailable for ${Math.round(minutes)} min: ${error}`);
+  if (minutes < OUTAGE_ALERT_MIN || h.outageNotifiedAt) return;
+  const reached = await messageAllOfficers(`আগাম: ${Math.round(minutes)} মিনিট ধরে বৃষ্টির তথ্য পাওয়া যাচ্ছে না, তাই আগাম এখন বন্যার ঝুঁকি দেখতে পারছে না। FFWC/BMD-এর সরকারি বুলেটিন দেখুন। তথ্য ফিরলে জানানো হবে।`);
+  feedHealth.set((x) => ({ ...x, outageNotifiedAt: new Date().toISOString() }));
+  audit.add({ who: "Agam worker", action: "live data outage — officers told to use official bulletins", detail: `${error} · ${reached} officer(s) reached` });
+}
+
+async function feedOk(missing: string[]) {
+  const h = feedHealth.get();
+  if (h.outageNotifiedAt) {
+    const reached = await messageAllOfficers("আগাম: বৃষ্টির তথ্য আবার পাওয়া যাচ্ছে। আগাম আবার বন্যার ঝুঁকি দেখছে।");
+    audit.add({ who: "Agam worker", action: "live data restored", detail: `${reached} officer(s) told` });
+  }
+  feedHealth.set(() => ({ lastOkAt: new Date().toISOString() }));
+  if (missing.length) log(`live data partly missing: ${missing.join(", ")} (levels use the remaining signals)`);
+}
+
 async function detect() {
+  let live;
+  try {
+    live = await fetchLiveInputs();
+  } catch (e) {
+    return feedFailed((e as Error).message);
+  }
+  await feedOk(live.missing ?? []);
   if (!settings.get().autoDetect) return;
-  const inputs = { ...(await fetchLiveInputs()), reports: communityReports() };
+  const inputs = { ...live, reports: communityReports() };
   for (const area of areas) {
-    const a = assessArea(area, inputs, stations, rainThresholds, riverThresholds, tideThresholds);
+    // An all-clear sent by an officer ends the post-Danger hold, so the worker does not re-raise it.
+    const a = respectAllClear(assessArea(area, inputs, stations, rainThresholds, riverThresholds, tideThresholds));
     if (a.level < 2) continue;
     // Don't repeat: skip if a live alert at this level or higher was drafted recently.
-    const recent = alerts.all().some((x) => x.areaId === area.id && x.scenario === "live" && x.level >= a.level && x.status !== "rejected" && Date.now() - Date.parse(x.createdAt) < REPEAT_ALERT_HOURS * 3600_000);
+    // Warnings from before an all-clear do not count: a new rise after the all-clear is a new event.
+    const clearedAt = Date.parse(alerts.lastSent(area.id, "live", "all-clear")?.sentAt ?? "") || 0;
+    const recent = alerts.all().some((x) => x.areaId === area.id && x.scenario === "live" && (x.kind ?? "warning") === "warning" && x.level >= a.level && x.status !== "rejected" && Date.now() - Date.parse(x.createdAt) < REPEAT_ALERT_HOURS * 3600_000 && Date.parse(x.createdAt) > clearedAt);
     if (recent) continue;
     const { alert } = await createDraft(area.id, a, "live", "Agam (automatic detection)");
     log(`auto-drafted ${alert.level === 3 ? "DANGER" : "WARNING"} for ${area.name} (code ${alert.code})`);

@@ -20,6 +20,8 @@ export type AlertFacts = {
   shelterBn: string;
   dialect: "sylheti" | "chatgaiya" | null;
   allowedNumbers: number[];
+  /** This message withdraws an earlier warning (the danger is over). */
+  allClear?: boolean;
 };
 
 export type AlertContent = {
@@ -41,7 +43,10 @@ export function buildFacts(area: Area, a: Assessment): AlertFacts {
   if (a.etaHours) a.etaHours.forEach((h) => numbers.add(Math.max(1, h)));
   let causeBn = `${area.riverBn} নদী অববাহিকায় ভারী বৃষ্টি হয়েছে।`;
   let causeEn = `Heavy rain in the ${area.river} catchment.`;
+  // Every number the cause texts (Bangla or English) can print is added to allowedNumbers, because the
+  // English summary for officials is checked too.
   if (a.heldFromDaysAgo) {
+    numbers.add(a.heldFromDaysAgo);
     causeBn = `গত কয়েক দিনের ভারী বৃষ্টির পানি এখনও নামেনি। ${area.riverBn} নদী ও আশপাশের এলাকায় পানি বিপজ্জনক অবস্থায় থাকতে পারে।`;
     causeEn = `Danger was issued ${a.heldFromDaysAgo} day(s) ago; flood water may still be high. Held at Warning until an officer gives the all-clear.`;
   } else if (top) {
@@ -53,12 +58,14 @@ export function buildFacts(area: Area, a: Assessment): AlertFacts {
       const rare = top.value >= top.threshold;
       if (rare) numbers.add(rarity);
       causeBn = `${top.whereBn} এলাকায় গত ${toBn(win)} ঘণ্টায় ${toBn(top.value)} মিলিমিটার বৃষ্টি হয়েছে${rare ? `, যা সেখানে সাধারণত ${toBn(rarity)} বছরে একবার হয়` : ""}।`;
-      causeEn = `${top.where} received ${top.value} mm in ${win}h${rare ? ` (≈1-in-${rarity}-year rainfall there)` : ""}.`;
+      causeEn = `${top.where} received ${top.value} mm in ${win}h${rare ? ` (rain this heavy happens about once in ${rarity} years there)` : ""}.`;
     } else if (top.kind === "forecast_rain") {
       numbers.add(72);
       causeBn = `${top.whereBn} এলাকায় আগামী ${toBn(72)} ঘণ্টায় ${toBn(top.value)} মিলিমিটার বৃষ্টির পূর্বাভাস রয়েছে।`;
       causeEn = `${top.value} mm of rain forecast at ${top.where} over the next 72h.`;
     } else if (top.kind === "river") {
+      numbers.add(top.threshold);
+      numbers.add(rarity);
       causeBn = `${area.riverBn} নদীর প্রবাহ স্বাভাবিকের চেয়ে অনেক বেশি এবং আরও বাড়ছে।`;
       causeEn = `${area.river} discharge forecast at ${top.value} m³/s, above the ≈${top.level === 3 ? 5 : 2}-year flood flow (${top.threshold} m³/s).`;
     }
@@ -90,11 +97,14 @@ const CHECKLIST: Record<number, string[]> = {
 
 export function templateAlert(f: AlertFacts): AlertContent {
   const eta = f.eta ? `আগামী ${toBn(Math.max(1, f.eta[0]))}-${toBn(f.eta[1])} ঘণ্টার মধ্যে ` : "";
-  const sms = {
-    1: `${f.levelBn}: ${f.areaBn} (${f.districtBn})-এর উজানে ভারী বৃষ্টি হচ্ছে। ${f.riverBn} নদীর পানির দিকে নজর রাখুন, ফোন চালু রাখুন।`,
-    2: `${f.levelBn}: ${f.areaBn} (${f.districtBn})-এ ${eta}${f.riverBn} নদীর পানি বাড়তে পারে। জরুরি জিনিস গুছিয়ে রাখুন, গবাদিপশু উঁচু স্থানে নিন। জরুরি: ৯৯৯`,
-    3: `${f.levelBn}: ${f.areaBn} (${f.districtBn})-এ ${eta}${f.riverBn} নদীর পানি দ্রুত বাড়তে পারে। এখনই ${f.shelterBn} বা নিরাপদ উঁচু স্থানে যান। বয়স্ক ও শিশুদের আগে সরান। জরুরি: ৯৯৯`,
-  }[f.level as 1 | 2 | 3];
+  const smsFor = (place: string, elderlyFirst: boolean) => ({
+    1: `${f.levelBn}: ${place}-এর উজানে ভারী বৃষ্টি হচ্ছে। ${f.riverBn} নদীর পানির দিকে নজর রাখুন, ফোন চালু রাখুন।`,
+    2: `${f.levelBn}: ${place}-এ ${eta}${f.riverBn} নদীর পানি বাড়তে পারে। জরুরি জিনিস গুছিয়ে রাখুন, গবাদিপশু উঁচু স্থানে নিন। জরুরি: ৯৯৯`,
+    3: `${f.levelBn}: ${place}-এ ${eta}${f.riverBn} নদীর পানি দ্রুত বাড়তে পারে। এখনই ${f.shelterBn} বা নিরাপদ উঁচু স্থানে যান।${elderlyFirst ? " বয়স্ক ও শিশুদের আগে সরান।" : ""} জরুরি: ৯৯৯`,
+  })[f.level as 1 | 2 | 3];
+  // Long names must never push the SMS past 3 Bangla parts: drop the district, then the "elderly first"
+  // line (the voice call and the checklist still say it).
+  const sms = [smsFor(`${f.areaBn} (${f.districtBn})`, true), smsFor(f.areaBn, true), smsFor(f.areaBn, false)].find((s) => s.length <= 200) ?? smsFor(f.areaBn, false);
   const action = f.level === 3
     ? `দেরি না করে এখনই ${f.shelterBn} বা নিরাপদ উঁচু স্থানে চলে যান। বয়স্ক, প্রতিবন্ধী, গর্ভবতী নারী ও শিশুদের আগে সরিয়ে নিন।`
     : f.level === 2
@@ -106,12 +116,45 @@ export function templateAlert(f: AlertFacts): AlertContent {
     voice_bn: voice,
     dialect_voice: null,
     checklist_bn: CHECKLIST[f.level] ?? CHECKLIST[1],
-    official_summary_en: `${f.levelEn.toUpperCase()} for ${f.areaEn}. ${f.causeEn}${f.eta ? ` Expected arrival in ${f.eta[0]}–${f.eta[1]} h.` : ""}`,
+    official_summary_en: `${f.levelEn.toUpperCase()} for ${f.areaEn}. ${f.causeEn}${f.eta ? ` Expected arrival in ${Math.max(1, f.eta[0])}–${f.eta[1]} h.` : ""}`,
+  };
+}
+
+export const ALL_CLEAR_BN = "সতর্কতা প্রত্যাহার";
+
+/** Facts for the all-clear that withdraws the last warning sent for an area. */
+export function allClearFacts(area: Area, last: AlertFacts): AlertFacts {
+  return {
+    ...last,
+    areaId: area.id,
+    level: 0,
+    levelBn: ALL_CLEAR_BN,
+    levelEn: "All-clear",
+    eta: null,
+    causeBn: `${area.riverBn} নদীর উজানে বৃষ্টি কমেছে এবং বন্যার বড় ঝুঁকি কেটে গেছে।`,
+    causeEn: `The ${last.levelEn} alert for ${area.name} is withdrawn: rain upstream has eased and the main flood risk has passed.`,
+    allowedNumbers: [999],
+    allClear: true,
+  };
+}
+
+/** The all-clear: safe to return, plus the dangers that remain after a flood. Always the verified template. */
+export function allClearAlert(f: AlertFacts): AlertContent {
+  return {
+    sms_bn: `${ALL_CLEAR_BN}: ${f.areaBn} (${f.districtBn})-এ বন্যার বড় ঝুঁকি কেটে গেছে। স্রোতের পানি থেকে দূরে থাকুন, ঘর পরীক্ষা করে ফিরুন। জরুরি: ৯৯৯`,
+    voice_bn: `প্রিয় ${f.areaBn}বাসী, এটি বন্যা ${ALL_CLEAR_BN} বার্তা। ${f.causeBn} আশ্রয়কেন্দ্র থেকে বাড়ি ফেরার আগে ঘরের দেয়াল ও খুঁটি পরীক্ষা করুন। স্রোতের পানিতে নামবেন না, শিশুদের পানির কাছে যেতে দেবেন না। ভেজা অবস্থায় বিদ্যুতের সুইচ চালু করবেন না। জরুরি প্রয়োজনে ৯৯৯ নম্বরে ফোন করুন। বার্তাটি পাঠিয়েছে ${f.senderBn}।`,
+    dialect_voice: null,
+    checklist_bn: ["বাড়ি ফেরার আগে ঘরের দেয়াল ও খুঁটি পরীক্ষা করুন", "ভেজা অবস্থায় বিদ্যুতের সুইচ চালু করবেন না", "নলকূপের পানি ফুটিয়ে পান করুন", "সাপ ও পোকামাকড় থেকে সাবধান থাকুন"],
+    official_summary_en: `ALL-CLEAR for ${f.areaEn}. ${f.causeEn}`,
   };
 }
 
 /** Short script for mosque / temple loudspeakers and volunteer megaphones, repeated twice. */
 export function announcementScript(f: AlertFacts): string {
+  if (f.allClear) {
+    const once = `একটি জরুরি ঘোষণা। ${f.areaBn} এলাকাবাসীর জন্য বন্যা ${ALL_CLEAR_BN}। বন্যার বড় ঝুঁকি কেটে গেছে। তবে স্রোতের পানিতে নামবেন না, ঘর পরীক্ষা করে বাড়ি ফিরুন। জরুরি প্রয়োজনে ৯৯৯ নম্বরে ফোন করুন। ঘোষণা দিচ্ছে ${f.senderBn}।`;
+    return `${once}\n\nআবার বলছি — ${once}`;
+  }
   const eta = f.eta ? `আগামী ${toBn(Math.max(1, f.eta[0]))} থেকে ${toBn(f.eta[1])} ঘণ্টার মধ্যে ` : "";
   const action = f.level === 3
     ? `সবাই এখনই ${f.shelterBn} বা উঁচু স্থানে চলে যান। বয়স্ক, প্রতিবন্ধী, গর্ভবতী নারী ও শিশুদের আগে সরিয়ে নিন।`
@@ -129,13 +172,35 @@ export function volunteerSms(f: AlertFacts, volunteer: string, homes: { headBn: 
 }
 
 /** Guardrails: an AI-written alert is only used if every check passes; otherwise the template is sent. */
+/**
+ * The action each level must ask for (at least one phrase in both the SMS and the voice call), and
+ * reassurances that must never appear in a Warning or Danger. This catches a draft that names the right
+ * level but gives the wrong instruction.
+ */
+const ACTION_WORDS: Record<number, string[]> = {
+  1: ["নজর", "খেয়াল", "সতর্ক থাকুন", "ফোন চালু"],
+  2: ["গুছিয়ে", "প্রস্তুত", "উঁচু স্থান", "উঁচু জায়গা", "সরিয়ে"],
+  3: ["আশ্রয়কেন্দ্র", "উঁচু স্থান", "উঁচু জায়গা"],
+};
+const FALSE_REASSURANCE = ["চিন্তার কিছু নেই", "ভয়ের কিছু নেই", "ভয় পাবেন না", "দরকার নেই", "প্রয়োজন নেই", "আশঙ্কা নেই", "ঝুঁকি নেই"];
+
+function rightAction(c: AlertContent, f: AlertFacts): boolean {
+  if (f.allClear) return true;
+  const words = ACTION_WORDS[f.level] ?? [];
+  const asks = (t: string) => words.some((w) => t.includes(w));
+  const reassures = f.level >= 2 && [c.sms_bn, c.voice_bn, c.dialect_voice ?? ""].some((t) => FALSE_REASSURANCE.some((p) => t.includes(p)));
+  return asks(c.sms_bn) && asks(c.voice_bn) && !reassures;
+}
+
 export function validateAlert(c: AlertContent, f: AlertFacts): Check[] {
-  const allText = [c.sms_bn, c.voice_bn, c.dialect_voice ?? "", ...c.checklist_bn].join(" ");
+  // The English summary for officials is checked too: an officer must never read an invented number.
+  const allText = [c.sms_bn, c.voice_bn, c.dialect_voice ?? "", ...c.checklist_bn, c.official_summary_en].join(" ");
+  const action = rightAction(c, f);
   const numbersUsed = [...toAscii(allText).matchAll(/\d+/g)].map((m) => Number(m[0]));
   const allowed = new Set(f.allowedNumbers);
   const invented = numbersUsed.filter((n) => !allowed.has(n));
   const checks: Check[] = [
-    { name: "Alert level stated", ok: c.sms_bn.includes(f.levelBn) && c.voice_bn.includes(f.levelBn) },
+    { name: "Alert level stated, with the right action", ok: c.sms_bn.includes(f.levelBn) && c.voice_bn.includes(f.levelBn) && action, detail: action ? undefined : "the instruction does not match the alert level" },
     { name: "Area named correctly", ok: c.sms_bn.includes(f.areaBn) && c.voice_bn.includes(f.areaBn) },
     { name: "No invented numbers", ok: invented.length === 0, detail: invented.length ? `unexpected: ${invented.join(", ")}` : undefined },
     { name: "SMS fits 3 Bangla SMS parts (≤ 200 chars)", ok: c.sms_bn.length <= 200, detail: `${c.sms_bn.length} chars` },

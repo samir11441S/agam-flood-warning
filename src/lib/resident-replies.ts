@@ -51,9 +51,8 @@ export async function recordResidentReply(phone: string, status: "safe" | "help"
   const match = findAlertFor(phone);
   if (!match) return { ok: false, message: "আগাম: আপনার এলাকায় এখন কোনো সক্রিয় সতর্কবার্তা নেই। জরুরি প্রয়োজনে ৯৯৯ নম্বরে ফোন করুন।" };
   const { alert, household } = match;
-  const area = areaById[alert.areaId];
   const note = text.trim().split(/\s+/).slice(1).join(" ") || undefined;
-  replies.record({
+  const previous = replies.record({
     channel, phone, alertId: alert.id, areaId: alert.areaId, status, at: new Date().toISOString(), note,
     name: household?.headBn ?? `…${phone.slice(-4)}`, village: household?.village,
   });
@@ -64,16 +63,25 @@ export async function recordResidentReply(phone: string, status: "safe" | "help"
     return { ok: true, message: "আগাম: ধন্যবাদ। নিরাপদে থাকুন, প্রতিবেশীদের খোঁজ নিন।" };
   }
 
-  // Help: every volunteer of the area gets the name, village and number at once.
-  const volunteers = areaLists.contacts(alert.areaId).filter((c) => c.role === "volunteer");
   const who = household ? `${household.headBn}${household.village ? ` (${household.village})` : ""}` : "একজন বাসিন্দা";
-  const sms = `আগাম জরুরি: ${bnAt(area.nameBn)} ${who} সাহায্য চেয়েছেন। ফোন: ${toBn(phone.replace("+88", ""))}${note ? `। বার্তা: ${note}` : ""}`;
-  const live = smsMode() === "live" && !officers.demoMode();
-  let forwarded = 0;
-  if (live) for (const v of volunteers) if ((await sendSms(v.phone, sms)).ok) forwarded++;
-  audit.add({
-    who: `resident …${phone.slice(-4)}`, action: `asked for HELP by ${channel}`, areaId: alert.areaId, alertId: alert.id,
-    detail: live ? `sent to ${forwarded} of ${volunteers.length} volunteers` : `test mode: would notify ${volunteers.length} volunteers`,
-  });
+  await forwardHelp(alert, { who, contact: `ফোন: ${toBn(phone.replace("+88", ""))}`, note, by: `resident …${phone.slice(-4)}`, channel, repeat: previous?.status === "help" });
   return { ok: true, message: "আগাম: আপনার সাহায্যের অনুরোধ স্বেচ্ছাসেবকদের কাছে পাঠানো হয়েছে। নিরাপদ উঁচু জায়গায় থাকুন। জরুরি: ৯৯৯" };
+}
+
+/**
+ * A help request (SMS, keypad or Telegram): every volunteer of the area gets the name, village and how to
+ * reach the person, at once. A repeated "help" from the same person is recorded but not re-sent.
+ */
+export async function forwardHelp(alert: SavedAlert, r: { who: string; contact: string; note?: string; by: string; channel: string; repeat: boolean }) {
+  const area = areaById[alert.areaId];
+  const volunteers = areaLists.contacts(alert.areaId).filter((c) => c.role === "volunteer");
+  const sms = `আগাম জরুরি: ${bnAt(area.nameBn)} ${r.who} সাহায্য চেয়েছেন। ${r.contact}${r.note ? `। বার্তা: ${r.note}` : ""}`;
+  const live = alert.scenario === "live" && smsMode() === "live" && !officers.demoMode();
+  let forwarded = 0;
+  if (live && !r.repeat) for (const v of volunteers) if ((await sendSms(v.phone, sms)).ok) forwarded++;
+  audit.add({
+    who: r.by, action: `asked for HELP by ${r.channel}`, areaId: alert.areaId, alertId: alert.id,
+    detail: r.repeat ? "repeat request — volunteers were already told" : live ? `sent to ${forwarded} of ${volunteers.length} volunteers` : `test mode: would notify ${volunteers.length} volunteers`,
+  });
+  return forwarded;
 }

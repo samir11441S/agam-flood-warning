@@ -1,13 +1,10 @@
 // Tracks every household's voice call after an alert: retry unanswered calls, try the backup number,
-// then hand the home to a volunteer. Real call outcomes arrive from the IVR provider's status webhook;
-// in test mode outcomes are simulated so the flow can be demonstrated.
-import fs from "node:fs";
-import path from "node:path";
-import { DATA_DIR } from "./data-dir";
+// then hand the home to a volunteer. Real call outcomes arrive from the IVR provider's status webhook
+// (web process) while the worker retries calls (worker process), so every change is a locked
+// read-modify-write and no network call happens while a stale copy of the list is held.
 import type { Household } from "./households";
-
-const DIR = DATA_DIR;
-const FILE = path.join(DIR, "deliveries.json");
+import { mapLimit } from "./pool";
+import { load, update } from "./store";
 
 export const MAX_ATTEMPTS = 2;
 export const RETRY_AFTER_MIN = 10;
@@ -29,19 +26,9 @@ export type Delivery = {
   lastAt: string;
 };
 
-function readAll(): Delivery[] {
-  try {
-    return JSON.parse(fs.readFileSync(FILE, "utf8")) as Delivery[];
-  } catch {
-    return [];
-  }
-}
-
-function writeAll(list: Delivery[]) {
-  fs.mkdirSync(DIR, { recursive: true });
-  fs.writeFileSync(FILE + ".tmp", JSON.stringify(list));
-  fs.renameSync(FILE + ".tmp", FILE);
-}
+const FILE = "deliveries";
+const change = (fn: (list: Delivery[]) => Delivery[]) => update<Delivery[]>(FILE, [], fn);
+const readAll = () => load<Delivery[]>(FILE, []);
 
 /** Deterministic simulated answer (test mode): ~70% answer each attempt. */
 function simulatedAnswer(d: Delivery) {
@@ -50,28 +37,37 @@ function simulatedAnswer(d: Delivery) {
   return (h >>> 0) % 100 < 70;
 }
 
+const sameHome = (a: Delivery, b: Delivery) => a.alertId === b.alertId && a.householdId === b.householdId;
+
 export const deliveries = {
   all: () => readAll(),
   forAlert: (alertId: string) => readAll().filter((d) => d.alertId === alertId),
 
+  /** Registers the calls BEFORE they are placed, so a fast "answered" webhook always finds its record. */
   start(alertId: string, areaId: string, homes: Household[], live: boolean) {
     const now = new Date().toISOString();
     const fresh: Delivery[] = homes.filter((h) => h.phoneNumber).map((h) => ({
       alertId, areaId, householdId: h.id, headBn: h.headBn, village: h.village, phone: h.phoneNumber!, backupPhone: h.backupPhoneNumber,
       attempts: 1, backupTried: false, status: "calling", live, lastAt: now,
     }));
-    writeAll([...readAll().filter((d) => d.alertId !== alertId), ...fresh]);
+    change((list) => [...list.filter((d) => d.alertId !== alertId).slice(-20_000), ...fresh]);
   },
 
   /** Called by the IVR provider's status webhook (live mode). The worker decides what happens next. */
-  report(phone: string, answered: boolean) {
-    const list = readAll();
-    const d = [...list].reverse().find((x) => (x.phone === phone || x.backupPhone === phone) && (x.status === "calling" || x.status === "backup"));
-    if (!d) return null;
-    d.status = answered ? "answered" : "retry";
-    d.lastAt = new Date().toISOString();
-    writeAll(list);
-    return d;
+  report(phone: string, answered: boolean): Delivery | null {
+    let found: Delivery | null = null;
+    change((list) => {
+      const idx = list.findLastIndex((x) => (x.phone === phone || x.backupPhone === phone) && (x.status === "calling" || x.status === "backup"));
+      if (idx < 0) return list;
+      found = { ...list[idx], status: answered ? "answered" : "retry", lastAt: new Date().toISOString() };
+      return list.map((d, i) => (i === idx ? found! : d));
+    });
+    return found;
+  },
+
+  /** A call could not even be placed (provider error): count it as unanswered so it is retried. */
+  failed(d: Delivery) {
+    change((list) => list.map((x) => (sameHome(x, d) && (x.status === "calling" || x.status === "backup") ? { ...x, status: "retry", lastAt: new Date().toISOString() } : x)));
   },
 
   /**
@@ -80,32 +76,41 @@ export const deliveries = {
    * Returns the homes newly handed to volunteers.
    */
   async tick(call: (to: string, d: Delivery) => Promise<{ ok: boolean }>, now = Date.now()) {
-    const list = readAll();
     const handed: Delivery[] = [];
-    for (const d of list) {
-      if (d.status === "answered" || d.status === "volunteer") continue;
-      if (!d.live && (d.status === "calling" || d.status === "backup")) {
-        d.status = simulatedAnswer(d) ? "answered" : "retry";
-        continue;
-      }
-      if (d.status !== "retry") continue; // live call in progress: wait for the provider's status webhook
-      const next = d.attempts < MAX_ATTEMPTS ? "call" : d.backupPhone && !d.backupTried ? "backup" : "volunteer";
-      if (next !== "volunteer" && d.live && now - Date.parse(d.lastAt) < RETRY_AFTER_MIN * 60_000) continue;
-      if (next === "call") {
-        d.attempts++;
-        d.status = "calling";
-        if (d.live) await call(d.phone, d);
-      } else if (next === "backup") {
-        d.backupTried = true;
-        d.status = "backup";
-        if (d.live) await call(d.backupPhone!, d);
-      } else {
-        d.status = "volunteer";
-        handed.push(d);
-      }
-      d.lastAt = new Date(now).toISOString();
-    }
-    writeAll(list);
+    const toCall: { to: string; d: Delivery }[] = [];
+    // 1. Decide and record every transition under the lock (no awaits in here).
+    change((list) =>
+      list.map((orig) => {
+        const d = { ...orig };
+        if (d.status === "answered" || d.status === "volunteer") return orig;
+        if (!d.live && (d.status === "calling" || d.status === "backup")) {
+          d.status = simulatedAnswer(d) ? "answered" : "retry";
+          return d;
+        }
+        if (d.status !== "retry") return orig; // live call in progress: wait for the provider's status webhook
+        const next = d.attempts < MAX_ATTEMPTS ? "call" : d.backupPhone && !d.backupTried ? "backup" : "volunteer";
+        if (next !== "volunteer" && d.live && now - Date.parse(d.lastAt) < RETRY_AFTER_MIN * 60_000) return orig;
+        if (next === "call") {
+          d.attempts++;
+          d.status = "calling";
+          if (d.live) toCall.push({ to: d.phone, d });
+        } else if (next === "backup") {
+          d.backupTried = true;
+          d.status = "backup";
+          if (d.live) toCall.push({ to: d.backupPhone!, d });
+        } else {
+          d.status = "volunteer";
+          handed.push(d);
+        }
+        d.lastAt = new Date(now).toISOString();
+        return d;
+      }),
+    );
+    // 2. Place the calls after the list is saved; a failed placement is recorded as unanswered.
+    await mapLimit(toCall, 10, async ({ to, d }) => {
+      const r = await call(to, d).catch(() => ({ ok: false }));
+      if (!r.ok) deliveries.failed(d);
+    });
     return handed;
   },
 

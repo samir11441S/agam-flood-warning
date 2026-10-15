@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
       scenario,
       asOf: inputs.asOf,
       replay: replay && { id: replay.id, title: replay.title, titleBn: replay.titleBn, focus: replay.focus, dates: replaySteps(replay) },
-      assessments: assessAll(inputs),
+      assessments: assessAll(inputs, scenario),
+      missing: inputs.missing ?? [],
     });
   } catch (e) {
     return Response.json({ error: `Could not load live data: ${(e as Error).message}` }, { status: 502 });

@@ -2,7 +2,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { verifySession, type PublicOfficer } from "./officers";
 
-export const SESSION_COOKIE = "agam_session";
+/** In production the __Host- prefix makes browsers refuse the cookie unless it is Secure, host-only and Path=/. */
+export const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-agam_session" : "agam_session";
 
 export async function currentOfficer(): Promise<PublicOfficer | null> {
   return verifySession((await cookies()).get(SESSION_COOKIE)?.value);

@@ -26,9 +26,9 @@ export async function botUsername(): Promise<string | null> {
 
 const ICON: Record<number, string> = { 1: "🟡", 2: "🟠", 3: "🔴" };
 
-export function alertMessage(level: Level, content: AlertContent) {
+export function alertMessage(level: Level, content: AlertContent, allClear = false) {
   return [
-    `${ICON[level] ?? ""} বন্যা ${LEVELS[level].bn}`,
+    allClear ? "🟢 বন্যা সতর্কতা প্রত্যাহার" : `${ICON[level] ?? ""} বন্যা ${LEVELS[level].bn}`,
     "",
     content.voice_bn,
     "",

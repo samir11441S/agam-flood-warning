@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { deliveries } from "@/lib/deliveries";
-import { normalisePhone } from "@/lib/officers";
+import { normalisePhone, secretMatches } from "@/lib/officers";
 import { recordResidentReply } from "@/lib/resident-replies";
 
 /**
@@ -11,7 +11,7 @@ import { recordResidentReply } from "@/lib/resident-replies";
  */
 export async function GET(request: NextRequest) {
   const p = request.nextUrl.searchParams;
-  if (!process.env.INBOUND_SECRET || p.get("secret") !== process.env.INBOUND_SECRET) return new Response("Forbidden", { status: 403 });
+  if (!secretMatches(request.headers.get("x-agam-secret") ?? p.get("secret"), process.env.INBOUND_SECRET)) return new Response("Forbidden", { status: 403 });
   let to: string;
   try {
     to = normalisePhone(p.get("to") ?? "");

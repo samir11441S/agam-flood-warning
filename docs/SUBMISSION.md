@@ -54,7 +54,7 @@ In August 2024, record rain in the hills of Tripura sent flash floods into Feni,
 Open data (free, global)                    Agam engine                                   Last mile
 ──────────────────────────                  ───────────────────────────────────────       ──────────────────────────
 ERA5 rain (30 yrs) ───► per-location ─────► Risk engine (rules, explainable)               Officer(s) approve: dashboard,
-GloFAS river (40 yrs)   thresholds            upstream rain across border ──┐                SMS "1 4821" or Telegram;
+GloFAS river (40 yrs)   thresholds            upstream rain across border ──┐                SMS "1 <code>" or Telegram;
 Sea level (2.5 yrs) ──► tide levels           local rain                    │                escalates to next officer
 Forecast models ──────► bias factor           forecast rain                 ├─► Normal/Watch/     │
 Live hourly rain, ──────────────────────────► river flow                    │   Warning/Danger    ▼
@@ -81,7 +81,7 @@ Residents' reports ────────────────────�
 12. **MCP server:** `list_areas`, `get_flood_risk`, `draft_alert`.
 
 **Target user journey:**
-Agam turns an area red and drafts the alert → the union officer gets an SMS ("reply 1 4821 to send") or opens the dashboard and reads why (rain in Tripura, arrival in 3–10 h) → listens to the message and checks the seven safety ticks → approves → calls and SMS go out, volunteers get door-knock lists, the mosque gets an announcement script → the officer watches the outbox: answered, retried, handed to volunteers, "safe" and "need help" replies.
+Agam turns an area red and drafts the alert → the union officer gets an SMS ("reply 1 305127 to send") or opens the dashboard and reads why (rain in Tripura, arrival in 3–10 h) → listens to the message and checks the seven safety ticks → approves → calls and SMS go out, volunteers get door-knock lists, the mosque gets an announcement script → the officer watches the outbox: answered, retried, handed to volunteers, "safe" and "need help" replies.
 
 **How it maps to the Climate Shield winning signal:** it predicts climate risk (flash and riverine floods) from live data, gives early warning with explicit lead time, and gets that warning to every person, measured per household.
 

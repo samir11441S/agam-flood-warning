@@ -49,10 +49,11 @@ export default function AlertPanel({ data, status, onApprove, onReject, busy }: 
   busy: boolean;
 }) {
   const { content, source, checks, note } = data.result;
+  const allClear = data.kind === "all-clear";
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Draft alert — needs human approval</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500">{allClear ? "Draft all-clear" : "Draft alert"} — needs human approval</h3>
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${source === "claude" ? "bg-violet-100 text-violet-800" : "bg-stone-200 text-stone-700"}`}>
           {source === "claude" ? "Written by Claude, verified" : "Verified template"}
         </span>
@@ -114,9 +115,9 @@ export default function AlertPanel({ data, status, onApprove, onReject, busy }: 
             </p>
           )}
           <div className="flex gap-2">
-            <button onClick={onApprove} disabled={busy} className="flex-1 rounded-lg bg-red-700 px-4 py-3 font-semibold text-white hover:bg-red-600 disabled:opacity-60">
+            <button onClick={onApprove} disabled={busy} className={`flex-1 rounded-lg px-4 py-3 font-semibold text-white disabled:opacity-60 ${allClear ? "bg-emerald-700 hover:bg-emerald-600" : "bg-red-700 hover:bg-red-600"}`}>
               Approve &amp; send <span lang="bn">· অনুমোদন ও প্রেরণ</span>
-              <span className="block text-xs font-normal opacity-90">voice call · SMS · volunteers · loudspeakers · Telegram — {data.plan.total} {data.plan.source === "demo" ? "demo " : ""}households</span>
+              <span className="block text-xs font-normal opacity-90">voice call · SMS · volunteers · loudspeakers · Telegram — {data.plan.total} {data.plan.source === "demo" ? "demo " : ""}households{allClear ? " · tells them the danger has passed" : ""}</span>
             </button>
             <button onClick={onReject} disabled={busy} className="rounded-lg border border-stone-300 px-3 text-sm hover:bg-stone-100">Reject</button>
           </div>

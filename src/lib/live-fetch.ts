@@ -6,7 +6,11 @@ type DailyResponse = { daily: { time: string[]; river_discharge?: (number | null
 type HourlyResponse = { hourly: { time: string[]; precipitation: (number | null)[] } };
 
 const PAST_DAYS = 7;
-const BLOCKS = 5;
+/**
+ * Rolling 24-hour blocks of observed rain. The engine reads up to 5 days, and the 72 h hold after a
+ * Danger re-runs it up to 3 days back — so 8 blocks keep that look-back as complete live as in replays.
+ */
+const BLOCKS = 8;
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(om(url));
@@ -39,10 +43,16 @@ export async function fetchLiveInputs(): Promise<Inputs> {
     rain[rainPoints[i].id] = { observed, forecast: [1, 2, 3].map((k) => block(end + 24 * k)) };
   });
 
+  // Rain is the primary signal: if it fails, the whole assessment fails (and the worker raises an outage).
+  // River flow and tide only add to it, so losing one of them is flagged instead of blanking every area.
+  const missing: string[] = [];
   const riverAreas = areas.filter((a) => a.riverCell);
   const qRes = await getJson<DailyResponse[]>(
     `https://flood-api.open-meteo.com/v1/flood?latitude=${riverAreas.map((a) => a.riverCell!.lat).join(",")}&longitude=${riverAreas.map((a) => a.riverCell!.lon).join(",")}&daily=river_discharge&past_days=${PAST_DAYS}&forecast_days=7`,
-  );
+  ).catch(() => {
+    missing.push("river");
+    return [] as DailyResponse[];
+  });
   const river: Inputs["river"] = {};
   qRes.forEach((r, i) => {
     const v = (r.daily.river_discharge ?? []).map((x) => x ?? 0);
@@ -54,12 +64,15 @@ export async function fetchLiveInputs(): Promise<Inputs> {
   const tide: Record<string, number> = {};
   const tRes = await getJson<{ hourly: { time: string[]; sea_level_height_msl: (number | null)[] } }[]>(
     `https://marine-api.open-meteo.com/v1/marine?latitude=${tideAreas.map((a) => a.tideCell!.lat).join(",")}&longitude=${tideAreas.map((a) => a.tideCell!.lon).join(",")}&hourly=sea_level_height_msl&forecast_days=3&timezone=Asia%2FDhaka`,
-  ).catch(() => []);
+  ).catch(() => {
+    missing.push("tide");
+    return [];
+  });
   tRes.forEach((r, i) => {
     const from = r.hourly.time.indexOf(nowHour);
     const next = r.hourly.sea_level_height_msl.slice(Math.max(0, from), from + 24).filter((v): v is number => v !== null);
     if (from >= 0 && next.length) tide[tideAreas[i].id] = Math.max(...next);
   });
 
-  return { asOf: `${today}T${nowHour.slice(11, 13)}`, rain, river, tide, forecastAvailable: true, observedSource: "model" };
+  return { asOf: `${today}T${nowHour.slice(11, 13)}`, rain, river, tide, forecastAvailable: true, observedSource: "model", missing };
 }

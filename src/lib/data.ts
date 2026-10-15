@@ -3,8 +3,10 @@ import thresholdsJson from "@/data/thresholds.json";
 import type { Area, Inputs, RainThreshold, RiverThreshold, Station, TideThreshold } from "./types";
 
 export const areas = geoJson.areas as Area[];
-export const stations = Object.fromEntries((geoJson.stations as Station[]).map((s) => [s.id, s]));
-export const areaById = Object.fromEntries(areas.map((a) => [a.id, a]));
+/** Lookup table without a prototype, so ids from requests ("constructor", "__proto__") never match anything. */
+const table = <T,>(entries: [string, T][]): Record<string, T> => Object.assign(Object.create(null) as Record<string, T>, Object.fromEntries(entries));
+export const stations = table((geoJson.stations as Station[]).map((s) => [s.id, s]));
+export const areaById = table(areas.map((a) => [a.id, a]));
 export const rainThresholds = thresholdsJson.rain as Record<string, RainThreshold>;
 export const riverThresholds = thresholdsJson.river as Record<string, RiverThreshold>;
 export const tideThresholds = ((thresholdsJson as { tide?: unknown }).tide ?? {}) as Record<string, TideThreshold>;

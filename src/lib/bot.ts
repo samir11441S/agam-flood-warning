@@ -1,15 +1,16 @@
 // Telegram bot logic (long polling, run by the worker):
 //  • residents: subscribe by QR code, answer "safe / need help", share location, report rising water
-//  • officers: link their account with /officer <PIN>, then approve or reject alerts with one tap
+//  • officers: link their private chat with a one-time code from the dashboard, then approve or reject with one tap
 import { approve, reject } from "./alert-flow";
 import { areaById, areas } from "./data";
 import { audit, officers } from "./officers";
-import { alerts, replies, reports, subscribers } from "./store";
+import { forwardHelp } from "./resident-replies";
+import { alerts, attempts, replies, reports, subscribers } from "./store";
 import { tg } from "./telegram";
 
 export type Update = {
   update_id: number;
-  message?: { chat: { id: number; first_name?: string }; text?: string; location?: { latitude: number; longitude: number } };
+  message?: { chat: { id: number; type?: string; first_name?: string }; text?: string; location?: { latitude: number; longitude: number } };
   callback_query?: { id: string; from: { id: number; first_name?: string }; message?: { chat: { id: number }; message_id: number }; data?: string };
 };
 
@@ -21,6 +22,23 @@ const residentKeyboard = {
   keyboard: [[{ text: "🌊 পানি বাড়ছে — রিপোর্ট করুন" }]],
   resize_keyboard: true,
 };
+
+/** Wrong link codes allowed per chat per hour. With 8-digit one-time codes that expire in 10 minutes, guessing is hopeless. */
+const LINK_TRIES = { limit: 5, windowMin: 60 };
+
+async function linkOfficer(chatId: number, chatType: string | undefined, code: string) {
+  if (chatType && chatType !== "private") return tg("sendMessage", { chat_id: chatId, text: "নিরাপত্তার জন্য কর্মকর্তার অ্যাকাউন্ট শুধু ব্যক্তিগত চ্যাটে যুক্ত করা যায়।" });
+  const key = `tg-link:${chatId}`;
+  if (attempts.blocked(key, LINK_TRIES.limit, LINK_TRIES.windowMin)) return tg("sendMessage", { chat_id: chatId, text: "অনেকবার ভুল কোড। এক ঘণ্টা পরে আবার চেষ্টা করুন।" });
+  const officer = /^\d{8}$/.test(code) ? officers.linkTelegram(code, chatId) : null;
+  if (!officer) {
+    attempts.hit(key, LINK_TRIES.windowMin);
+    return tg("sendMessage", { chat_id: chatId, text: "কোডটি সঠিক নয় বা মেয়াদ শেষ। ড্যাশবোর্ডে সাইন ইন করে \"Link Telegram\" থেকে নতুন কোড নিন।" });
+  }
+  attempts.clear(key);
+  audit.add({ who: officer.name, action: "linked Telegram for approvals" });
+  return tg("sendMessage", { chat_id: chatId, text: `✅ ${officer.name}, এখন থেকে অনুমোদনের অনুরোধ এই চ্যাটে আসবে।` });
+}
 
 /** Chats waiting to send the location of a "water rising" report. */
 const awaitingReportLocation = new Map<number, string>();
@@ -61,16 +79,11 @@ export async function handleUpdate(u: Update) {
     const name = msg.chat.first_name ?? "";
     if (text.startsWith("/start")) {
       const payload = text.split(/\s+/)[1];
+      if (payload?.startsWith("officer-")) return linkOfficer(chatId, msg.chat.type, payload.slice("officer-".length));
       if (payload) return subscribe(chatId, name, payload);
       return tg("sendMessage", { chat_id: chatId, text: "আগাম — বন্যার আগাম সতর্কবার্তা।\nআপনার এলাকা বেছে নিন:", reply_markup: areaKeyboard });
     }
-    if (text.startsWith("/officer")) {
-      const officer = officers.verifyPin(text.split(/\s+/)[1] ?? "");
-      if (!officer || officer.id === "demo") return tg("sendMessage", { chat_id: chatId, text: "PIN সঠিক নয়।" });
-      officers.update(officer.id, { telegramChatId: chatId });
-      audit.add({ who: officer.name, action: "linked Telegram for approvals" });
-      return tg("sendMessage", { chat_id: chatId, text: `✅ ${officer.name}, এখন থেকে অনুমোদনের অনুরোধ এখানে আসবে।` });
-    }
+    if (text.startsWith("/officer")) return linkOfficer(chatId, msg.chat.type, text.split(/\s+/)[1] ?? "");
     if (text === "/stop") {
       subscribers.removeChat(chatId);
       return tg("sendMessage", { chat_id: chatId, text: "আপনি আর সতর্কবার্তা পাবেন না। আবার চালু করতে /start লিখুন।", reply_markup: { remove_keyboard: true } });
@@ -99,7 +112,8 @@ export async function handleUpdate(u: Update) {
       return subscribe(chatId, name, id);
     }
     if (kind === "ok" || kind === "no") {
-      const officer = officers.byTelegram(chatId);
+      // The person who tapped must be the linked officer, in their own private chat (never a group).
+      const officer = cb.from.id === chatId ? officers.byTelegram(cb.from.id) : undefined;
       if (!officer) return tg("answerCallbackQuery", { callback_query_id: cb.id, text: "শুধু নিবন্ধিত কর্মকর্তা অনুমোদন দিতে পারেন।" });
       const who = { id: officer.id, name: officer.name, role: officer.role };
       await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
@@ -114,8 +128,12 @@ export async function handleUpdate(u: Update) {
     }
     if (kind === "safe" || kind === "help") {
       const alert = alerts.get(id);
-      if (!alert) return tg("answerCallbackQuery", { callback_query_id: cb.id, text: "এই বার্তাটি আর সক্রিয় নেই।" });
-      replies.record({ channel: "telegram", chatId, alertId: id, areaId: alert.areaId, name, status: kind, at: new Date().toISOString() });
+      if (!alert || alert.status !== "sent") return tg("answerCallbackQuery", { callback_query_id: cb.id, text: "এই বার্তাটি আর সক্রিয় নেই।" });
+      const previous = replies.record({ channel: "telegram", chatId, alertId: id, areaId: alert.areaId, name, status: kind, at: new Date().toISOString() });
+      if (kind === "help") {
+        // Same as an SMS or keypad "2": the area's volunteers hear about it at once.
+        await forwardHelp(alert, { who: name || "একজন টেলিগ্রাম ব্যবহারকারী", contact: "টেলিগ্রামে সাহায্য চেয়েছেন (ড্যাশবোর্ডে অবস্থান দেখুন)", by: `telegram ${name || chatId}`, channel: "telegram", repeat: previous?.status === "help" });
+      }
       await tg("answerCallbackQuery", { callback_query_id: cb.id, text: kind === "safe" ? "ধন্যবাদ!" : "অনুরোধ পাঠানো হয়েছে" });
       await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
       if (kind === "safe") return tg("sendMessage", { chat_id: chatId, text: "✅ ধন্যবাদ। নিরাপদে থাকুন, প্রতিবেশীদের খোঁজ নিন।", reply_markup: residentKeyboard });

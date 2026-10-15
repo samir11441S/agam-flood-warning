@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import geo from "@/data/geo.json";
 import type { AlertResponse, AlertStatus, RiskResponse } from "@/lib/api-types";
@@ -135,7 +136,7 @@ export default function Dashboard() {
   const counts = [3, 2, 1].map((l) => sorted.filter((a) => a.level === l).length);
   const selectedAssessment = data?.assessments.find((a) => a.areaId === selected) ?? null;
 
-  const draftAlert = useCallback(async () => {
+  const draftAlert = useCallback(async (kind: "warning" | "all-clear" = "warning") => {
     if (!selected) return;
     if (!session?.officer) return setAskLogin(true);
     setAlertLoading(true);
@@ -143,7 +144,7 @@ export default function Dashboard() {
       const res = await fetch("/api/alert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ areaId: selected, ...(scenario === "live" ? {} : { replay: scenario, date }) }),
+        body: JSON.stringify({ areaId: selected, kind, ...(scenario === "live" ? {} : { replay: scenario, date }) }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
@@ -155,6 +156,21 @@ export default function Dashboard() {
     }
   }, [selected, scenario, date, alertKey, requestKey, session]);
 
+  // Can the officer withdraw the last warning for this area? Asked again whenever the time step or an alert changes.
+  const [allClear, setAllClear] = useState<{ key: string; lastLevel?: string } | null>(null);
+  const sentStatus = alert?.status?.status;
+  useEffect(() => {
+    if (!selected || !session?.officer) return;
+    const qs = new URLSearchParams({ areaId: selected, ...(scenario === "live" ? {} : { replay: scenario, ...(date ? { date } : {}) }) });
+    let cancelled = false;
+    fetch(`/api/alert?${qs}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => !cancelled && setAllClear(j?.allClear ? { key: alertKey, lastLevel: j.lastLevel } : null))
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [selected, scenario, date, session, sentStatus, alertKey]);
+  const allClearHere = allClear?.key === alertKey && alert?.data.kind !== "all-clear" ? allClear : null;
+
   return (
     <div className="flex min-h-dvh flex-col bg-stone-50 text-stone-900 lg:h-dvh">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3">
@@ -162,7 +178,10 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight"><span lang="bn">আগাম</span> <span className="text-stone-400">Agam</span></h1>
           <p className="text-xs text-stone-500">Flash-flood warnings that watch the rain across the border — and reach every household in time.</p>
         </div>
-        <OfficerBar session={session} onChange={() => setSessionVersion((v) => v + 1)} askLogin={askLogin} setAskLogin={setAskLogin} />
+        <div className="flex items-center gap-2">
+          <Link href="/docs" className="rounded border border-stone-300 px-2.5 py-1 text-sm hover:bg-stone-100">Docs</Link>
+          <OfficerBar session={session} onChange={() => setSessionVersion((v) => v + 1)} askLogin={askLogin} setAskLogin={setAskLogin} />
+        </div>
         <div className="flex w-full flex-wrap gap-1.5">
           {SCENARIOS.map((s) => (
             <button key={s.id} onClick={() => { setScenario(s.id); setDate(null); setSelected(null); setPlaying(false); }}
@@ -198,6 +217,11 @@ export default function Dashboard() {
 
         <aside className="w-full border-l border-stone-200 bg-white p-4 lg:w-[460px] lg:overflow-y-auto">
           {error?.key === requestKey && <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-800">{error.message}</p>}
+          {data?.key === requestKey && (data.missing?.length ?? 0) > 0 && (
+            <p className="mb-3 rounded-md bg-amber-50 p-2 text-sm text-amber-900">
+              Live {data.missing!.join(" and ")} data could not be loaded just now — levels use the remaining signals. Check the official FFWC bulletin.
+            </p>
+          )}
           {data && (
             <div className="mb-4 grid grid-cols-3 gap-2 text-center">
               {[3, 2, 1].map((l, i) => (
@@ -212,7 +236,8 @@ export default function Dashboard() {
           {selected && selectedAssessment ? (
             <div className="space-y-5">
               <button onClick={() => setSelected(null)} className="text-sm text-stone-500 hover:text-stone-900">← All areas</button>
-              <AreaDetail area={areaById[selected]} assessment={selectedAssessment} onAlert={draftAlert} alertLoading={alertLoading} />
+              <AreaDetail area={areaById[selected]} assessment={selectedAssessment} onAlert={() => draftAlert("warning")} alertLoading={alertLoading}
+                allClear={allClearHere} onAllClear={() => draftAlert("all-clear")} />
               <OfficialStatusBox areaId={selected} agamLevel={selectedAssessment.level} canEdit={Boolean(session?.officer)} />
               <ReportsBox areaId={selected} canLog={Boolean(session?.officer)} live={scenario === "live"} />
               {session?.officer && <ListsPanel areaId={selected} />}
@@ -225,7 +250,7 @@ export default function Dashboard() {
             <details className="mb-3 rounded-lg bg-stone-50 p-3 text-sm text-stone-700">
               <summary className="cursor-pointer font-semibold text-stone-900">How Agam works</summary>
               <ol className="mt-2 list-decimal space-y-1 pl-5">
-                <li>Watches rain at 13 points upstream — many across the border in Tripura, Meghalaya and Assam — plus local rain, forecasts and river flow.</li>
+                <li>Watches rain at {geo.stations.length} points upstream — many across the border in Tripura, Meghalaya and Assam — plus local rain, forecasts and river flow.</li>
                 <li>Compares it with each place&apos;s own 30–40 years of history (&ldquo;rain this heavy happens once in 2 / 5 years here&rdquo;) and estimates when the water arrives.</li>
                 <li>Claude writes a plain-Bangla SMS and voice call from verified facts; automatic checks and a human officer approve it.</li>
                 <li>Reaches every household, most vulnerable first: voice calls, SMS, and volunteer door-knocks where there is no phone.</li>
