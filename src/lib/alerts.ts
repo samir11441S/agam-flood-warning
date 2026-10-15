@@ -194,7 +194,8 @@ function rightAction(c: AlertContent, f: AlertFacts): boolean {
 
 export function validateAlert(c: AlertContent, f: AlertFacts): Check[] {
   // The English summary for officials is checked too: an officer must never read an invented number.
-  const allText = [c.sms_bn, c.voice_bn, c.dialect_voice ?? "", ...c.checklist_bn, c.official_summary_en].join(" ");
+  // "a 1-in-5-year rain" restates the verified rarity (5) — read it as "once in 5 years"; the 5 is still checked.
+  const allText = [c.sms_bn, c.voice_bn, c.dialect_voice ?? "", ...c.checklist_bn, c.official_summary_en].join(" ").replace(/\b1\s*-?\s*in\s*-?\s*(\d+)/gi, "once in $1");
   const action = rightAction(c, f);
   const numbersUsed = [...toAscii(allText).matchAll(/\d+/g)].map((m) => Number(m[0]));
   const allowed = new Set(f.allowedNumbers);

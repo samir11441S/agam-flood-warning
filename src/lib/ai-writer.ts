@@ -37,7 +37,7 @@ Fields:
 - voice_bn: 60–100 words, spoken style, starts by addressing the residents of the area, explains the cause in one sentence, gives the arrival time if known, gives the main action, and repeats the main action once at the end.
 - dialect_voice: if a dialect is requested, the same voice message in that regional dialect written in Bangla script; otherwise null.
 - checklist_bn: 3–6 short practical actions appropriate to the alert level, no numbers.
-- official_summary_en: at most 60 words in English for government officials: level, area, cause, expected arrival. The allowed-numbers rule applies here too.
+- official_summary_en: at most 60 words in English for government officials: level, area, cause, expected arrival. The allowed-numbers rule applies here too; describe rarity as "about once in N years".
 
 The message comes from the local disaster-management committee, not from an app: end voice_bn with the sentence "বার্তাটি পাঠিয়েছে <senderBn>।" using senderBn exactly as given.`;
 
@@ -54,7 +54,7 @@ export type ComposeResult = {
 
 /** Why a call produced no usable draft. "limit" and "unavailable" move on to the next model at once. */
 class WriterError extends Error {
-  constructor(readonly kind: "limit" | "unavailable" | "refused" | "auth" | "failed", message: string) {
+  constructor(readonly kind: "limit" | "unavailable" | "busy" | "refused" | "auth" | "failed", message: string) {
     super(message);
   }
 }
@@ -82,6 +82,8 @@ async function post(url: string, headers: Record<string, string>, body: unknown)
   // Google answers a bad key with HTTP 400, others with 401/403.
   if (res.status === 401 || res.status === 403 || (res.status === 400 && /API key not valid|API_KEY_INVALID/i.test(text))) throw new WriterError("auth", "API key rejected");
   if (res.status === 404 || (res.status === 400 && /not found|not supported|unknown model|does not exist|decommissioned/i.test(text))) throw new WriterError("unavailable", "model not available");
+  // Overloaded or briefly down (free tiers see this at busy times): worth one quick retry.
+  if (res.status === 500 || res.status === 502 || res.status === 503 || res.status === 504) throw new WriterError("busy", `temporarily unavailable (HTTP ${res.status})`);
   if (!res.ok) {
     // Keep the provider's own reason (it never contains the key) so officers and logs see what went wrong.
     let reason = "";
@@ -233,6 +235,7 @@ const BUDGET_KEY = "ai:calls";
 const AI_CALLS_PER_HOUR = Number(process.env.AI_CALLS_PER_HOUR) || 40;
 /** At most this many model calls for one draft, so an officer never waits long. */
 const MAX_CALLS_PER_DRAFT = 4;
+const RETRY_PAUSE_MS = Number(process.env.AI_RETRY_PAUSE_MS) || 1500;
 
 export async function composeAlert(facts: AlertFacts): Promise<ComposeResult> {
   const template = templateAlert(facts);
@@ -278,13 +281,24 @@ export async function composeAlert(facts: AlertFacts): Promise<ComposeResult> {
       attempts.hit(BUDGET_KEY, 60);
       const label = `${p.name} · ${model}`;
       try {
-        const parsed = AlertSchema.safeParse(await p.write(model, user));
+        let raw: unknown;
+        try {
+          raw = await p.write(model, user);
+        } catch (err) {
+          // A busy server gets one more try on the same model after a short pause.
+          if (!(err instanceof WriterError && err.kind === "busy") || calls >= MAX_CALLS_PER_DRAFT) throw err;
+          await new Promise((r) => setTimeout(r, RETRY_PAUSE_MS));
+          calls++;
+          attempts.hit(BUDGET_KEY, 60);
+          raw = await p.write(model, user);
+        }
+        const parsed = AlertSchema.safeParse(raw);
         if (!parsed.success) { problems.push(`${label}: wrong format`); continue; }
         const content = parsed.data;
         if (!facts.dialect) content.dialect_voice = null;
         const checks = validateAlert(content, facts);
         if (!checks.every((c) => c.ok)) {
-          problems.push(`${label}: failed ${checks.filter((c) => !c.ok).map((c) => c.name).join(", ")}`);
+          problems.push(`${label}: failed ${checks.filter((c) => !c.ok).map((c) => `${c.name}${c.detail ? ` (${c.detail})` : ""}`).join(", ")}`);
           continue; // try the next (usually stronger) model
         }
         update<Record<string, CachedDraft>>(CACHE_FILE, {}, (all) => {

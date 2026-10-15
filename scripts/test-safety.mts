@@ -10,6 +10,7 @@ import { pathToFileURL } from "node:url";
 const DIR = fs.mkdtempSync(path.join(os.tmpdir(), "agam-safety-"));
 process.env.AGAM_DATA_DIR = DIR;
 process.env.INBOUND_SECRET = "test";
+process.env.AI_RETRY_PAUSE_MS = "10";
 for (const k of ["SMS_API_URL", "SMS_PROVIDER", "VOICE_API_URL", "TELEGRAM_BOT_TOKEN", "ANTHROPIC_API_KEY", "VERCEL", "TRUST_PROXY"]) delete process.env[k];
 
 // ---- fake network: SMS / IVR gateways and the Telegram Bot API ----
@@ -276,6 +277,16 @@ resetAi();
 aiMock.gemini = { [LITE]: geminiOk({ ...good2, voice_bn: good2.voice_bn + " চিন্তার কিছু নেই।" }), [FLASH]: geminiOk(good2) };
 r = await composeAlert(facts2);
 check("a draft that fails a safety check is replaced by the next model's", r.writer === `Gemini · ${FLASH}` && /failed Alert level stated/.test(r.note ?? ""));
+
+resetAi();
+let busyOnce = true;
+aiMock.gemini = { [LITE]: () => (busyOnce ? ((busyOnce = false), new Response("{}", { status: 503 })) : geminiOk(good2)()) };
+r = await composeAlert(facts2);
+check("a 503 (provider busy) gets one quick retry on the same model", r.writer === `Gemini · ${LITE}`);
+
+const rare = { ...good, official_summary_en: "DANGER for Parshuram. 172 mm in 24h at Santirbazar (a 1-in-5-year event). Expected arrival in 3–10 h." };
+check("'1-in-5-year' restating the verified rarity is accepted", validateAlert(rare, { ...dangerFacts, allowedNumbers: [...dangerFacts.allowedNumbers, 172, 24, 5, 3, 10] }).every((c) => c.ok));
+check("…but an invented '1 hour' is still rejected", !validateAlert({ ...good, official_summary_en: "DANGER for Parshuram. Water arrives within 1 hour." }, dangerFacts).every((c) => c.ok));
 
 resetAi();
 process.env.GROQ_API_KEY = "test-groq-key";
